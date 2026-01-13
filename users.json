@@ -1,0 +1,18 @@
+[
+    {
+        "username": "admin",
+        "password_hash": "$2y$10$FSAmtuYj\/D0Zj9Ej74rifO1juk0wuxsf6y5DBoKyOcT08NFwQSdoC"
+    },
+    {
+        "username": "Darren",
+        "password_hash": "$2y$10$UwC4poXb0H6mKgnymXFMdOCKHF4FzdopfhwslzHMO\/302h0\/V7y9C"
+    },
+    {
+        "username": "alex",
+        "password_hash": "$2y$10$IIUmPof2A\/wnHM8E4Xbp7.X1AFocvanZrRLa5osgQslM.Svy3k.ve"
+    },
+    {
+        "username": "weiliang",
+        "password_hash": "$2y$10$jrLQGRf1Z0rtNRq4fgisAO6Ni2nFzkFa7AH7Y69YNPvG7w0TWaeVe"
+    }
+]
