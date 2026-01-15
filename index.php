@@ -1,99 +1,172 @@
 <?php
 session_start();
-if (!isset($_SESSION['user'])) {
-    header("Location: login.php");
+if (!isset($_SESSION['user'])) { header("Location: login.php"); exit(); }
+$user = $_SESSION['user'];
+$role = $_SESSION['role'] ?? 'User';
+
+// 1. HANDLE SETTINGS SAVE
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['app_title'])) {
+    $new_title = $_POST['app_title'];
+    $config_data = ['app_title' => $new_title];
+    if (!file_exists('data')) { mkdir('data'); }
+    file_put_contents('data/config.json', json_encode($config_data));
+    header("Location: index.php?msg=Saved");
     exit();
 }
-?>
 
+// 2. LOAD CUSTOM TITLE
+$app_title = "My Workspace"; 
+if (file_exists('data/config.json')) {
+    $conf = json_decode(file_get_contents('data/config.json'), true);
+    if(isset($conf['app_title']) && !empty($conf['app_title'])) {
+        $app_title = $conf['app_title'];
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Storage Online</title>
+    <title>Dashboard - Data Storage Online</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
 </head>
 <body>
 
     <header class="top-header">
-        <div class="header-left">
-             <img src="logo.jpg" alt="Logo" class="logo-img" style="height:50px;">
-        </div>
-        <div class="header-center">
+        <div class="header-brand">
+            <img src="logo.jpg" alt="Logo" class="logo-img">
             <h2>Data Storage Online</h2>
+        </div>
+        <div class="header-dynamic-center">
+            <h3><?php echo htmlspecialchars($app_title); ?></h3>
         </div>
     </header>
 
     <div class="app-layout">
+        
         <aside class="sidebar">
-            <div class="sidebar-content">
-                <div class="sidebar-welcome">
-                    <span class="welcome-label">User Name:</span>
-                    <span class="welcome-name">
-                        <?php echo isset($_SESSION['user']) ? htmlspecialchars($_SESSION['user']) : 'Guest'; ?>
-                    </span>
-                    <br>
-                    <span class="welcome-label">User Type:</span>
-                    <?php 
-                        // 1. Get role from session, default to 'User' if not set
-                        $role = isset($_SESSION['role']) ? $_SESSION['role'] : 'User'; 
-                        
-                        // 2. Determine CSS class based on role (for styling)
-                        $roleClass = (strtolower($role) === 'admin') ? 'role-admin' : 'role-user';
-                    ?>
-                    
-                    <span class="user-role <?php echo $roleClass; ?>">
-                        <?php echo htmlspecialchars(ucfirst($role)); // Capitalize first letter ?>
-                    </span>
+            <div class="sidebar-top">
+                <div class="user-profile">
+                    <div class="avatar-circle"><?php echo strtoupper(substr($user, 0, 1)); ?></div>
+                    <div class="user-info">
+                        <span class="u-name"><?php echo htmlspecialchars($user); ?></span>
+                        <span class="u-role"><?php echo htmlspecialchars($role); ?></span>
+                    </div>
                 </div>
-                <div class="search-wrapper">
-                    <input type="text" class="sidebar-search" placeholder="Search...">
-                </div>
-                <div class="menu-group">
-                    <h3 class="menu-title">WORKSPACE</h3>
-<ul class="menu-list">
-    <li><a href="#" id="btn-insert-files">Import Files</a></li>
-    
-    <li><a href="#" id="btn-insert-folder">Import Folder</a></li>
-    
-    <li><a href="#">My Folder</a></li>
-</ul>
-                </div>
-                <div class="menu-group">
-                    <h3 class="menu-title">MANAGE</h3>
-                    <ul class="menu-list">
-                        <li><a href="#">Database</a></li>
-                        <li><a href="#">Settings</a></li>
-                    </ul>
-                </div>
+
+                <nav class="nav-menu">
+                    <a href="#" class="nav-item active" id="nav-dashboard">
+                        <ion-icon name="speedometer-outline"></ion-icon> Dashboard
+                    </a>
+                    <a href="#" class="nav-item" id="nav-files">
+                        <ion-icon name="folder-open-outline"></ion-icon> All Files
+                    </a>
+                </nav>
             </div>
-            <div class="sidebar-footer">
-                <?php if(isset($_SESSION['user'])): ?>
-                    <a href="action_logout.php" class="login-btn" style="text-decoration:none; display:block; text-align:center; background:#ff4d4f; color:white; border:none;">
-                        Logout
-                    </a>
-                <?php else: ?>
-                    <a href="login.php" class="login-btn" style="text-decoration:none; display:block; text-align:center; line-height:30px;">
-                        Login
-                    </a>
-                <?php endif; ?>
+
+            <div class="sidebar-bottom">
+                <a href="#" class="nav-item" id="nav-settings">
+                    <ion-icon name="settings-outline"></ion-icon> Settings
+                </a>
+                <a href="action_logout.php" class="nav-item logout">
+                    <ion-icon name="log-out-outline"></ion-icon> Logout
+                </a>
             </div>
         </aside>
 
         <main class="main-content">
-            <div class="tabs-bar" id="tabs-container">
-                <div class="tab-item active" data-id="tab-1">
-                    <span class="tab-name">Tab 1</span>
-                    <span class="close-tab">×</span>
-                </div>
-                <div class="tab-add">
-                    <span>+</span>
+            <div id="view-dashboard" class="content-view">
+                <h2 class="view-title">Welcome back, <?php echo htmlspecialchars($user); ?>!</h2>
+                <div class="stats-container">
+                    <div class="stat-card">
+                        <h3>Total Files</h3>
+                        <div class="big-number" id="stat-total">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>File Types</h3>
+                        <div class="pie-chart-wrapper">
+                            <div class="pie-chart" id="type-pie-chart"></div>
+                            <div class="pie-legend">
+                                <span class="legend-item"><span class="dot txt"></span> TXT</span>
+                                <span class="legend-item"><span class="dot mp3"></span> MP3</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="content-area" id="main-content-area">
+            <div id="view-files" class="content-view" style="display: none;">
+                <div class="file-toolbar">
+                    <div class="tab-label">All Files</div>
+                    <div class="toolbar-actions">
+                        
+                        <div class="action-btn" style="padding: 0; overflow: hidden;">
+                            <select id="filterSelect" style="border: none; background: transparent; padding: 6px 10px; cursor: pointer; outline: none; font-size: 13px; color: #333; height: 100%; width: 100%;">
+                                <option value="all">Filter: All</option>
+                                <option value="txt">Type: Text (.txt)</option>
+                                <option value="mp3">Type: Audio (.mp3)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="action-btn primary" id="btn-trigger-upload">
+                            <ion-icon name="document-outline"></ion-icon> Upload Files
+                        </div>
+
+                        <div class="action-btn primary" id="btn-trigger-folder" style="background: #0ea5e9; border-color: #0ea5e9;">
+                            <ion-icon name="folder-open-outline"></ion-icon> Upload Folder
+                        </div>
+                    </div>
+                    <div class="search-group">
+                        <input type="date" class="date-picker">
+                        <input type="text" id="file-search" placeholder="Search files...">
+                    </div>
                 </div>
+                <div class="file-workspace">
+                    <div class="file-table-container">
+                        <table class="file-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;"><input type="checkbox"></th>
+                                    <th style="width: 50px;">No</th>
+                                    <th>File Name</th>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="file-table-body"></tbody>
+                        </table>
+                    </div>
+                    <div class="folder-sidebar">
+                        <h4>Folders</h4>
+                        <ul class="folder-list">
+                            <li><ion-icon name="folder"></ion-icon> AI Technology</li>
+                            <li><ion-icon name="folder"></ion-icon> Complain</li>
+                            <li><ion-icon name="folder"></ion-icon> Personal</li>
+                            <li><ion-icon name="folder"></ion-icon> Archives</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-settings" class="content-view" style="display: none;">
+                <h2 class="view-title">System Settings</h2>
+                <div class="settings-card">
+                    <form action="" method="post">
+                        <div class="form-group">
+                            <label for="app_title">Center Header Title</label>
+                            <input type="text" name="app_title" id="app_title" 
+                                   value="<?php echo htmlspecialchars($app_title); ?>" 
+                                   class="settings-input" placeholder="e.g. My Workspace">
+                            <small>Change the text displayed in the center of the top bar.</small>
+                        </div>
+                        <button type="submit" class="btn-save">Save Changes</button>
+                    </form>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -101,56 +174,8 @@ if (!isset($_SESSION['user'])) {
         <p>© 2026 DAL-sh. All rights reserved.</p>
     </footer>
 
-    <div class="modal-overlay" id="file-modal">
-        <div class="explorer-window">
-            <div class="explorer-header">
-                <span class="explorer-title">Open</span>
-                <div class="window-controls">
-                    <span class="close-modal-x">×</span>
-                </div>
-            </div>
-            <div class="explorer-toolbar">
-                <div class="nav-arrows"><span>←</span><span>→</span><span>↑</span></div>
-                <div class="address-bar"><span>This PC > Data > Uploads</span></div>
-                <div class="search-box"><input type="text" placeholder="Search"></div>
-            </div>
-            <div class="explorer-body">
-                <div class="explorer-sidebar">
-                    <ul>
-                        <li class="sidebar-item active">📌 Quick access</li>
-                        <li class="sidebar-item">💻 This PC</li>
-                    </ul>
-                </div>
-                <div class="explorer-content">
-                    <div class="file-grid">
-                        <div class="file-item"><div class="file-icon folder">📁</div><span class="file-name">Docs</span></div>
-                        <div class="file-item"><div class="file-icon file-img">🎵</div><span class="file-name">Music</span></div>
-                    </div>
-                </div>
-            </div>
-            <div class="explorer-footer">
-                <div class="input-group">
-                    <label>File name:</label>
-                    <input type="text" class="filename-input">
-                </div>
-                <div class="footer-buttons">
-                    <button class="explorer-btn select" id="btn-modal-select">Select</button>
-                    <button class="explorer-btn cancel" id="btn-modal-cancel">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="context-menu" class="context-menu">
-        <ul>
-            <li id="ctx-open">Open</li>
-            <li id="ctx-download">Download</li>
-            <li id="ctx-delete" style="color: #ff4d4f; border-top: 1px solid #eee;">Delete</li>
-        </ul>
-    </div>
-
-    <input type="file" id="fileInput" style="display: none;" multiple accept=".txt, .mp3, image/*, .pdf" />
-    <input type="file" id="folderInput" style="display: none;" webkitdirectory directory multiple />
+    <input type="file" id="fileInput" style="display: none;" multiple>
+    <input type="file" id="folderInput" style="display: none;" webkitdirectory directory multiple>
 
     <script src="js/main.js"></script>
 </body>

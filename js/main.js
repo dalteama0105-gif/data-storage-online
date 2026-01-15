@@ -1,355 +1,192 @@
 document.addEventListener('DOMContentLoaded', () => {
     
-    // ================= 1. 状态管理 =================
-    let tabsData = {
-        'tab-1': [] 
-    };
+    // --- Navigation Elements ---
+    const navDashboard = document.getElementById('nav-dashboard');
+    const navFiles = document.getElementById('nav-files');
+    const navSettings = document.getElementById('nav-settings');
     
-    let activeTabId = 'tab-1';
-    let tabCounter = 1;
-    let selectedFileIndex = null; 
+    const viewDashboard = document.getElementById('view-dashboard');
+    const viewFiles = document.getElementById('view-files');
+    const viewSettings = document.getElementById('view-settings');
 
-    // ================= 2. DOM 元素 =================
-    const tabsContainer = document.getElementById('tabs-container');
-    const tabAddBtn = document.querySelector('.tab-add');
-    const mainContentArea = document.getElementById('main-content-area');
-    const fileInput = document.getElementById('fileInput');
-
-    // 菜单相关
-    const contextMenu = document.getElementById('context-menu');
-    const ctxOpen = document.getElementById('ctx-open');
-    const ctxDownload = document.getElementById('ctx-download');
-    const ctxDelete = document.getElementById('ctx-delete');
-
-    // 弹窗相关
-    const insertBtn = document.getElementById('btn-insert-files');
-    const modal = document.getElementById('file-modal');
-    const cancelBtn = document.getElementById('btn-modal-cancel');
-    const selectBtn = document.getElementById('btn-modal-select');
-    const closeX = document.querySelector('.close-modal-x');
-
-
-    // ================= 3. 核心功能函数 =================
-
-    // --- A. 渲染文件列表 ---
-    function renderCurrentFiles() {
-        mainContentArea.innerHTML = ''; 
+    function switchView(viewName) {
+        viewDashboard.style.display = 'none';
+        viewFiles.style.display = 'none';
+        viewSettings.style.display = 'none';
         
-        const files = tabsData[activeTabId] || [];
-        
-        if (files.length === 0) {
-            mainContentArea.innerHTML = '<p style="color:#999; text-align:center; margin-top:50px;">Folder is empty. Click "Insert Files" to add content.</p>';
-            return;
+        navDashboard.classList.remove('active');
+        navFiles.classList.remove('active');
+        if(navSettings) navSettings.classList.remove('active');
+
+        if(viewName === 'dashboard') {
+            viewDashboard.style.display = 'block';
+            navDashboard.classList.add('active');
+            loadDataAndRender();
+        } else if(viewName === 'files') {
+            viewFiles.style.display = 'block';
+            navFiles.classList.add('active');
+            loadDataAndRender();
+        } else if(viewName === 'settings') {
+            viewSettings.style.display = 'block';
+            if(navSettings) navSettings.classList.add('active');
         }
+    }
 
-        const grid = document.createElement('div');
-        grid.className = 'main-file-grid';
+    navDashboard.addEventListener('click', (e) => { e.preventDefault(); switchView('dashboard'); });
+    navFiles.addEventListener('click', (e) => { e.preventDefault(); switchView('files'); });
+    if(navSettings) navSettings.addEventListener('click', (e) => { e.preventDefault(); switchView('settings'); });
 
-        files.forEach((file, index) => {
-            const item = document.createElement('div');
-            item.className = 'main-file-item';
-            
-            // 图标判断逻辑
-            let icon = '📄';
-            let fType = file.type || '';
-            if (file.name.endsWith('.mp3') || fType.includes('audio')) icon = '🎵';
-            else if (file.name.endsWith('.txt') || fType.includes('text')) icon = '📝';
-            else if (fType.includes('image')) icon = '🖼️';
-            else if (file.name.endsWith('.pdf') || fType.includes('pdf')) icon = '📕';
+    // --- File Logic ---
+    let allFiles = [];
+    const tableBody = document.getElementById('file-table-body');
+    const statTotal = document.getElementById('stat-total');
+    const pieChart = document.getElementById('type-pie-chart');
 
-            item.innerHTML = `
-                <div class="main-file-icon">${icon}</div>
-                <div class="main-file-name">${file.name}</div>
-            `;
+    // Upload & Filter Elements
+    const btnUpload = document.getElementById('btn-trigger-upload');
+    const fileInput = document.getElementById('fileInput');
+    const btnFolder = document.getElementById('btn-trigger-folder');
+    const folderInput = document.getElementById('folderInput');
+    
+    // === NEW: FILTER ELEMENT ===
+    const filterSelect = document.getElementById('filterSelect');
+    if(filterSelect) {
+        // When user changes filter, re-render the table
+        filterSelect.addEventListener('change', renderTable);
+    }
 
-            // 右键菜单事件
-            item.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                selectedFileIndex = index;
-                contextMenu.style.top = `${e.pageY}px`;
-                contextMenu.style.left = `${e.pageX}px`;
-                contextMenu.style.display = 'block';
+    function loadDataAndRender() {
+        fetch('action_list_files.php')
+            .then(res => res.json())
+            .then(data => {
+                allFiles = data;
+                renderStats();
+                renderTable();
             });
+    }
 
-            grid.appendChild(item);
+    function renderStats() {
+        if(!statTotal) return;
+        statTotal.textContent = allFiles.length;
+
+        let txtCount = 0;
+        let mp3Count = 0;
+        allFiles.forEach(f => {
+            if(f.name.endsWith('.txt')) txtCount++;
+            else if(f.name.endsWith('.mp3')) mp3Count++;
         });
 
-        mainContentArea.appendChild(grid);
+        const total = allFiles.length || 1; 
+        const txtPercent = (txtCount / total) * 100;
+        const mp3Percent = (mp3Count / total) * 100;
+        const p1 = txtPercent;
+        const p2 = txtPercent + mp3Percent;
+
+        if(pieChart) {
+            pieChart.style.background = `conic-gradient(#f59e0b 0% ${p1}%, #2563eb ${p1}% ${p2}%, #e5e7eb ${p2}% 100%)`;
+        }
     }
 
-    // --- B. 切换标签页 ---
-    function switchTab(tabElement) {
-        document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-        tabElement.classList.add('active');
-        activeTabId = tabElement.dataset.id;
-        renderCurrentFiles();
-    }
+    function renderTable() {
+        if(!tableBody) return;
+        tableBody.innerHTML = '';
 
-    // --- C. 从服务器加载文件 (关键修复) ---
-    function loadServerFiles() {
-        console.log("正在从服务器获取文件列表...");
-        fetch('action_list_files.php')
-            .then(response => response.json())
-            .then(files => {
-                if (files.length === 0) return;
+        // 1. Get current filter
+        const filterVal = filterSelect ? filterSelect.value : 'all';
 
-                // 简单的去重处理（可选）：如果 tab-1 还是空的，就放进去
-                // 如果你想每次刷新都覆盖，可以用 tabsData['tab-1'] = [];
-                if (tabsData['tab-1'].length === 0) {
-                    files.forEach(file => {
-                        // 补全类型，方便显示图标
-                        if(file.type === 'mp3') file.type = 'audio/mp3';
-                        else if(file.type === 'txt') file.type = 'text/plain';
-                        else if(['jpg','png','jpeg'].includes(file.type)) file.type = 'image/jpeg';
-                        
-                        tabsData['tab-1'].push(file);
-                    });
-                    renderCurrentFiles();
-                }
-            })
-            .catch(err => console.error("Error loading files:", err));
-    }
+        // 2. Filter the array
+        const filesToShow = allFiles.filter(file => {
+            if(filterVal === 'all') return true;
+            if(filterVal === 'txt' && file.name.toLowerCase().endsWith('.txt')) return true;
+            if(filterVal === 'mp3' && file.name.toLowerCase().endsWith('.mp3')) return true;
+            return false;
+        });
 
-
-    // ================= 4. 事件监听 =================
-
-    // --- 标签页点击 ---
-    tabsContainer.addEventListener('click', (e) => {
-        const tabItem = e.target.closest('.tab-item');
-        if (e.target.classList.contains('close-tab')) {
-            e.stopPropagation();
-            if (tabItem) {
-                const idToDelete = tabItem.dataset.id;
-                delete tabsData[idToDelete];
-                tabItem.remove();
-                if (activeTabId === idToDelete) {
-                    const remainingTabs = document.querySelectorAll('.tab-item');
-                    if (remainingTabs.length > 0) switchTab(remainingTabs[remainingTabs.length - 1]);
-                    else { mainContentArea.innerHTML = ''; activeTabId = null; }
-                }
-            }
+        if(filesToShow.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No files found matching current filter.</td></tr>';
             return;
         }
-        if (tabItem) switchTab(tabItem);
-    });
 
-    // --- 添加新标签 ---
-    tabAddBtn.addEventListener('click', () => {
-        tabCounter++;
-        const newId = `tab-${tabCounter}`;
-        tabsData[newId] = [];
-        const newTab = document.createElement('div');
-        newTab.className = 'tab-item';
-        newTab.dataset.id = newId;
-        newTab.innerHTML = `<span class="tab-name">New Tab</span><span class="close-tab">×</span>`;
-        tabsContainer.insertBefore(newTab, tabAddBtn);
-        switchTab(newTab);
-    });
+        // 3. Render filtered files
+        filesToShow.forEach((file, index) => {
+            const tr = document.createElement('tr');
+            
+            let typeLabel = 'FILE';
+            if(file.name.endsWith('.mp3')) typeLabel = 'MP3';
+            if(file.name.endsWith('.txt')) typeLabel = 'TXT';
 
-    // --- 弹窗逻辑 ---
-    if(insertBtn) insertBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        if(!activeTabId) { alert("Please add a tab first!"); return; }
-        modal.classList.add('active');
-    });
-    const closeModal = () => modal.classList.remove('active');
-    if(cancelBtn) cancelBtn.addEventListener('click', closeModal);
-    if(closeX) closeX.addEventListener('click', closeModal);
-    window.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-    if(selectBtn) selectBtn.addEventListener('click', () => fileInput.click());
+            tr.innerHTML = `
+                <td><input type="checkbox"></td>
+                <td>${index + 1}</td>
+                <td>${file.name}</td>
+                <td>${file.date || '-'}</td>
+                <td><span class="badge">${typeLabel}</span></td>
+                <td style="white-space:nowrap;">
+                    <span class="icon-btn open" onclick="window.open('${file.path}', '_blank')" title="Open">
+                        <ion-icon name="eye-outline"></ion-icon>
+                    </span>
+                    <a href="${file.path}" download="${file.name}" class="icon-btn download" title="Download">
+                        <ion-icon name="cloud-download-outline"></ion-icon>
+                    </a>
+                    <span class="icon-btn delete" onclick="deleteFile('${file.name}')" title="Delete">
+                        <ion-icon name="trash-outline"></ion-icon>
+                    </span>
+                </td>
+            `;
+            tableBody.appendChild(tr);
+        });
+    }
 
+    // --- Unified Upload Handler ---
+    function handleUpload(fileList) {
+        const files = Array.from(fileList);
+        if(files.length === 0) return;
 
-    // --- 核心：文件上传处理 (Fetch API) ---
-    fileInput.addEventListener('change', (e) => {
-        const files = Array.from(e.target.files);
-        if (files.length > 0 && activeTabId) {
-            files.forEach(file => {
-                const formData = new FormData();
-                formData.append('file', file);
+        let processed = 0;
+        files.forEach(file => {
+            const formData = new FormData();
+            formData.append('file', file);
+            if(file.webkitRelativePath) {
+                formData.append('relativePath', file.webkitRelativePath);
+            }
 
-                fetch('action_upload.php', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
+            fetch('action_upload.php', { method: 'POST', body: formData })
+                .then(res => res.json())
                 .then(data => {
-                    if (data.success) {
-                        console.log("Uploaded:", data.file.name);
-                        tabsData[activeTabId].push({
-                            name: data.file.name,
-                            path: data.file.path,
-                            type: data.file.type,
-                            isServerFile: true 
-                        });
-                        renderCurrentFiles();
-                    } else {
-                        alert("Upload failed: " + data.message);
+                    processed++;
+                    if(processed === files.length) {
+                        loadDataAndRender();
                     }
                 })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert("Upload error.");
-                });
-            });
-            closeModal();
-            fileInput.value = '';
-        }
-    });
-
-    // ================= FOLDER UPLOAD LOGIC =================
-
-    // 1. Get Elements
-    const folderInput = document.getElementById('folderInput');
-    const btnInsertFolder = document.getElementById('btn-insert-folder');
-
-    // 2. Trigger Hidden Input when clicking "Import Folder"
-    if (btnInsertFolder) {
-        btnInsertFolder.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (!activeTabId) { alert("Please add a tab first!"); return; }
-            folderInput.click(); // Opens the Folder Selection Dialog
+                .catch(err => console.error(err));
         });
     }
 
-    // 3. Handle the Folder Upload
-    if (folderInput) {
+    if(btnUpload) btnUpload.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+        handleUpload(e.target.files);
+        fileInput.value = ''; 
+    });
+
+    if(btnFolder) btnFolder.addEventListener('click', () => folderInput.click());
+    if(folderInput) {
         folderInput.addEventListener('change', (e) => {
-            const files = Array.from(e.target.files);
-
-            if (files.length > 0 && activeTabId) {
-                console.log(`Uploading ${files.length} files from folder...`);
-                
-                // Iterate through all files inside the folder
-                files.forEach(file => {
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    
-                    // CRITICAL: Send the folder path (e.g. "MyFolder/image.png")
-                    // This allows PHP to create the subdirectories.
-                    formData.append('relativePath', file.webkitRelativePath); 
-
-                    fetch('action_upload.php', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            console.log("Uploaded:", data.file.name);
-                            // Update UI
-                            tabsData[activeTabId].push({
-                                name: data.file.name, // You might want to show full path here?
-                                path: data.file.path,
-                                type: data.file.type,
-                                isServerFile: true 
-                            });
-                            renderCurrentFiles();
-                        } else {
-                            console.error("Upload failed for " + file.name);
-                        }
-                    })
-                    .catch(error => console.error('Error:', error));
-                });
-
-                // Clear input
-                folderInput.value = '';
-            }
+            handleUpload(e.target.files);
+            folderInput.value = ''; 
         });
     }
 
-    // ================= 5. 右键菜单功能 =================
-
-    document.addEventListener('click', () => {
-        contextMenu.style.display = 'none';
-    });
-
-    // --- 打开文件 ---
-    ctxOpen.addEventListener('click', () => {
-        if (selectedFileIndex !== null && activeTabId) {
-            const fileData = tabsData[activeTabId][selectedFileIndex];
-            
-            if (fileData.isServerFile) {
-                // 如果是服务器文件，直接打开路径
-                window.open(fileData.path, '_blank');
-            } else if(fileData.originalFile) {
-                // 如果是未上传的本地文件(兼容旧逻辑)
-                const fileUrl = URL.createObjectURL(fileData.originalFile);
-                window.open(fileUrl, '_blank');
-            }
-        }
-    });
-
-    // --- 下载文件 (修复版) ---
-    ctxDownload.addEventListener('click', () => {
-        if (selectedFileIndex !== null && activeTabId) {
-            const fileData = tabsData[activeTabId][selectedFileIndex];
-            let downloadUrl = '';
-
-            // 判断是服务器文件还是本地 Blob
-            if (fileData.isServerFile) {
-                downloadUrl = fileData.path;
-            } else if (fileData.originalFile) {
-                downloadUrl = URL.createObjectURL(fileData.originalFile);
-            }
-
-            if (downloadUrl) {
-                const tempLink = document.createElement('a');
-                tempLink.href = downloadUrl;
-                // 注意：对于服务器上的跨域文件，download 属性可能不生效，只会打开
-                // 但因为我们是 localhost，通常可以直接下载
-                tempLink.download = fileData.name; 
-                document.body.appendChild(tempLink);
-                tempLink.click();
-                document.body.removeChild(tempLink);
-                
-                if(!fileData.isServerFile) URL.revokeObjectURL(downloadUrl);
-            }
-        }
-    });
-
-    // --- 删除文件 (修改版：连接后端) ---
-    ctxDelete.addEventListener('click', () => {
-        if (selectedFileIndex !== null && activeTabId) {
-            const fileData = tabsData[activeTabId][selectedFileIndex];
-            
-            // 确认一下 (可选，防止误删)
-            if(!confirm(`Are you sure you want to delete "${fileData.name}"?`)) return;
-
-            // 1. 准备数据发送给 PHP
-            const formData = new FormData();
-            formData.append('filename', fileData.name);
-
-            // 2. 发送请求
-            fetch('action_delete.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
+    window.deleteFile = function(filename) {
+        if(!confirm(`Delete ${filename}?`)) return;
+        const formData = new FormData();
+        formData.append('filename', filename);
+        fetch('action_delete.php', { method: 'POST', body: formData })
+            .then(res => res.json())
             .then(data => {
-                if (data.success) {
-                    // === 后端删除成功，现在更新前端 ===
-                    console.log("File deleted from server");
-                    
-                    // 从数组中移除
-                    tabsData[activeTabId].splice(selectedFileIndex, 1);
-                    
-                    // 重新渲染界面
-                    renderCurrentFiles();
-                } else {
-                    alert("Delete failed: " + data.message);
-                }
-            })
-            .catch(err => {
-                console.error("Error:", err);
-                alert("Cannot connect to server.");
+                if(data.success) { loadDataAndRender(); } 
+                else { alert('Error: ' + data.message); }
             });
-        }
-    });
+    };
 
-    // ================= 6. 初始化 =================
-    // 页面加载完毕后，立刻尝试去服务器拉取文件
-    renderCurrentFiles();
-    loadServerFiles();
-
-}); // <--- 整个代码结束的大括号
-
+    loadDataAndRender();
+});
