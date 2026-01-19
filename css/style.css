@@ -91,6 +91,7 @@ body { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
 .dot.txt { background: #f59e0b; }
 .dot.mp3 { background: #2563eb; }
+.dot.folder { background: #d7d7d7; }
 
 /* TOOLBAR */
 .file-toolbar { background: #fff; padding: 15px 20px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }

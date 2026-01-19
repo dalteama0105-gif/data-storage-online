@@ -1,5 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     
+    // === NEW: Track Current Folder Path ===
+    let currentPath = ''; 
+
     // --- Navigation Elements ---
     const navDashboard = document.getElementById('nav-dashboard');
     const navFiles = document.getElementById('nav-files');
@@ -32,8 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    navDashboard.addEventListener('click', (e) => { e.preventDefault(); switchView('dashboard'); });
-    navFiles.addEventListener('click', (e) => { e.preventDefault(); switchView('files'); });
+    if(navDashboard) navDashboard.addEventListener('click', (e) => { e.preventDefault(); switchView('dashboard'); });
+    if(navFiles) navFiles.addEventListener('click', (e) => { e.preventDefault(); switchView('files'); });
     if(navSettings) navSettings.addEventListener('click', (e) => { e.preventDefault(); switchView('settings'); });
 
     // --- File Logic ---
@@ -42,31 +45,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const statTotal = document.getElementById('stat-total');
     const pieChart = document.getElementById('type-pie-chart');
 
-    // Upload & Filter Elements
+    // Upload Elements
     const btnUpload = document.getElementById('btn-trigger-upload');
     const fileInput = document.getElementById('fileInput');
     const btnFolder = document.getElementById('btn-trigger-folder');
     const folderInput = document.getElementById('folderInput');
     
-    // === NEW: FILTER ELEMENT ===
+    // Filter Elements
     const filterSelect = document.getElementById('filterSelect');
-    if(filterSelect) {
-        // When user changes filter, re-render the table
-        filterSelect.addEventListener('change', renderTable);
-    }
+    const datePicker = document.querySelector('.date-picker');
+
+    // Add Listeners for Filters
+    if(filterSelect) filterSelect.addEventListener('change', renderTable);
+    if(datePicker) datePicker.addEventListener('change', renderTable);
 
     function loadDataAndRender() {
-        fetch('action_list_files.php')
+        // Pass the 'currentPath' to PHP so it knows which folder to scan
+        fetch('action_list_files.php?dir=' + encodeURIComponent(currentPath))
             .then(res => res.json())
             .then(data => {
                 allFiles = data;
                 renderStats();
                 renderTable();
-            });
+            })
+            .catch(err => console.error("Error loading files:", err));
     }
 
     function renderStats() {
         if(!statTotal) return;
+        // Only count total items in current view
         statTotal.textContent = allFiles.length;
 
         let txtCount = 0;
@@ -91,53 +98,149 @@ document.addEventListener('DOMContentLoaded', () => {
         if(!tableBody) return;
         tableBody.innerHTML = '';
 
-        // 1. Get current filter
+        // 1. Get current filter values
         const filterVal = filterSelect ? filterSelect.value : 'all';
+        const dateVal = datePicker ? datePicker.value : '';
 
         // 2. Filter the array
         const filesToShow = allFiles.filter(file => {
-            if(filterVal === 'all') return true;
-            if(filterVal === 'txt' && file.name.toLowerCase().endsWith('.txt')) return true;
-            if(filterVal === 'mp3' && file.name.toLowerCase().endsWith('.mp3')) return true;
-            return false;
+            
+            // A. Check Type
+            let typeMatch = false;
+            
+            if (filterVal === 'all') {
+                typeMatch = true;
+            } 
+            else if (file.type === 'folder') {
+                // If we are strictly filtering for mp3/txt, usually folders are hidden
+                typeMatch = false; 
+            } 
+            else {
+                if(filterVal === 'txt' && file.name.toLowerCase().endsWith('.txt')) typeMatch = true;
+                else if(filterVal === 'mp3' && file.name.toLowerCase().endsWith('.mp3')) typeMatch = true;
+            }
+
+            // B. Check Date
+            let dateMatch = true;
+            if (dateVal !== '') {
+                // Check if file.date (YYYY-MM-DD HH:MM) starts with the picked date
+                if (!file.date.startsWith(dateVal)) {
+                    dateMatch = false;
+                }
+            }
+
+            // Both must be true to show the file
+            return typeMatch && dateMatch;
         });
 
-        if(filesToShow.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No files found matching current filter.</td></tr>';
+        // 3. Add "Go Back" Row if we are inside a folder
+        if (currentPath !== '') {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td></td>
+                <td><ion-icon name="arrow-undo" style="font-size:18px; color:#666;"></ion-icon></td>
+                <td colspan="4">
+                    <a href="#" onclick="goUpFolder()" style="font-weight:bold; color:#333; text-decoration:none; display:flex; align-items:center; gap:5px;">
+                        ... (Go Back)
+                    </a>
+                </td>
+            `;
+            tableBody.appendChild(tr);
+        }
+
+        // 4. Handle Empty State
+        if(filesToShow.length === 0 && currentPath === '') {
+            tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">No files found matching filters.</td></tr>';
             return;
         }
 
-        // 3. Render filtered files
+        // 5. Render Rows
         filesToShow.forEach((file, index) => {
             const tr = document.createElement('tr');
             
             let typeLabel = 'FILE';
-            if(file.name.endsWith('.mp3')) typeLabel = 'MP3';
-            if(file.name.endsWith('.txt')) typeLabel = 'TXT';
+            let iconName = 'document-outline';
+            let clickAction = '';
+            let actionButtons = '';
 
-            tr.innerHTML = `
-                <td><input type="checkbox"></td>
-                <td>${index + 1}</td>
-                <td>${file.name}</td>
-                <td>${file.date || '-'}</td>
-                <td><span class="badge">${typeLabel}</span></td>
-                <td style="white-space:nowrap;">
-                    <span class="icon-btn open" onclick="window.open('${file.path}', '_blank')" title="Open">
+            // --- FOLDER RENDER LOGIC ---
+           if (file.type === 'folder') {
+                typeLabel = 'FOLDER';
+                iconName = 'folder-open';
+                // Click name to enter folder
+                clickAction = `onclick="enterFolder('${file.name}')" style="cursor:pointer; color:#2563eb; font-weight:bold;"`;
+                
+                // === UPDATED: Added Download Button for Folders ===
+                // It points to our new action_download_folder.php
+                actionButtons = `
+                     <a href="action_download_folder.php?folder=${encodeURIComponent(file.relativePath)}" class="icon-btn download" title="Download Folder as Zip">
+                        <ion-icon name="cloud-download-outline"></ion-icon>
+                     </a>
+                     <span class="icon-btn delete" onclick="deleteFile('${file.relativePath}')" title="Delete Folder">
+                        <ion-icon name="trash-outline"></ion-icon>
+                    </span>
+                `;
+            }
+            // --- FILE RENDER LOGIC ---
+            else {
+                if(file.name.endsWith('.mp3')) typeLabel = 'MP3';
+                if(file.name.endsWith('.txt')) typeLabel = 'TXT';
+                
+                actionButtons = `
+                    <span class="icon-btn open" onclick="window.open('view_file.php?f=' + encodeURIComponent('${file.relativePath}'), '_blank')" title="Open">
                         <ion-icon name="eye-outline"></ion-icon>
                     </span>
                     <a href="${file.path}" download="${file.name}" class="icon-btn download" title="Download">
                         <ion-icon name="cloud-download-outline"></ion-icon>
                     </a>
-                    <span class="icon-btn delete" onclick="deleteFile('${file.name}')" title="Delete">
+                    <span class="icon-btn delete" onclick="deleteFile('${file.relativePath}')" title="Delete">
                         <ion-icon name="trash-outline"></ion-icon>
                     </span>
+                `;
+            }
+
+            tr.innerHTML = `
+                <td><input type="checkbox"></td>
+                <td>${index + 1}</td>
+                <td ${clickAction}>
+                    <ion-icon name="${iconName}" style="vertical-align:bottom; margin-right:5px;"></ion-icon>
+                    ${file.name}
+                </td>
+                <td>${file.date || '-'}</td>
+                <td><span class="badge">${typeLabel}</span></td>
+                <td style="white-space:nowrap;">
+                    ${actionButtons}
                 </td>
             `;
             tableBody.appendChild(tr);
         });
     }
 
-    // --- Unified Upload Handler ---
+    // --- Global Functions for HTML onClick access ---
+    
+    // 1. Enter Folder
+    window.enterFolder = function(folderName) {
+        if (currentPath === '') {
+            currentPath = folderName;
+        } else {
+            currentPath = currentPath + '/' + folderName;
+        }
+        loadDataAndRender();
+    };
+
+    // 2. Go Back Up
+    window.goUpFolder = function() {
+        if (currentPath.includes('/')) {
+            // Remove the last segment
+            currentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+        } else {
+            // Back to root
+            currentPath = ''; 
+        }
+        loadDataAndRender();
+    };
+
+    // --- Upload Handler (Supports Folders) ---
     function handleUpload(fileList) {
         const files = Array.from(fileList);
         if(files.length === 0) return;
@@ -146,9 +249,21 @@ document.addEventListener('DOMContentLoaded', () => {
         files.forEach(file => {
             const formData = new FormData();
             formData.append('file', file);
-            if(file.webkitRelativePath) {
-                formData.append('relativePath', file.webkitRelativePath);
+            
+            // If inside a folder, prepend currentPath to the relative path
+            let uploadPath = file.name;
+            if (file.webkitRelativePath) {
+                uploadPath = file.webkitRelativePath; 
+                if(currentPath !== '') {
+                    uploadPath = currentPath + '/' + uploadPath;
+                }
+            } else {
+                if(currentPath !== '') {
+                    uploadPath = currentPath + '/' + file.name;
+                }
             }
+            
+            formData.append('relativePath', uploadPath);
 
             fetch('action_upload.php', { method: 'POST', body: formData })
                 .then(res => res.json())
@@ -176,10 +291,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- Delete Handler ---
     window.deleteFile = function(filename) {
         if(!confirm(`Delete ${filename}?`)) return;
+        
         const formData = new FormData();
         formData.append('filename', filename);
+        
         fetch('action_delete.php', { method: 'POST', body: formData })
             .then(res => res.json())
             .then(data => {
@@ -188,5 +306,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     };
 
+    // Initial Load
     loadDataAndRender();
 });

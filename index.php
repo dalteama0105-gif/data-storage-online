@@ -1,23 +1,35 @@
 <?php
 session_start();
 if (!isset($_SESSION['user'])) { header("Location: login.php"); exit(); }
+
 $user = $_SESSION['user'];
 $role = $_SESSION['role'] ?? 'User';
+
+// === NEW: Create a unique config filename for this user ===
+// We use the username to make it unique (e.g., "data/config_admin.json")
+$safe_filename = preg_replace('/[^a-zA-Z0-9_-]/', '', $user); // Safety cleanup
+$user_config_file = 'data/config_' . $safe_filename . '.json';
 
 // 1. HANDLE SETTINGS SAVE
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['app_title'])) {
     $new_title = $_POST['app_title'];
     $config_data = ['app_title' => $new_title];
+    
     if (!file_exists('data')) { mkdir('data'); }
-    file_put_contents('data/config.json', json_encode($config_data));
+    
+    // === CHANGED: Save to the USER'S specific file, not the global one ===
+    file_put_contents($user_config_file, json_encode($config_data));
+    
     header("Location: index.php?msg=Saved");
     exit();
 }
 
 // 2. LOAD CUSTOM TITLE
-$app_title = "My Workspace"; 
-if (file_exists('data/config.json')) {
-    $conf = json_decode(file_get_contents('data/config.json'), true);
+$app_title = "My Workspace"; // Default if no setting exists
+
+// === CHANGED: Load from the USER'S specific file ===
+if (file_exists($user_config_file)) {
+    $conf = json_decode(file_get_contents($user_config_file), true);
     if(isset($conf['app_title']) && !empty($conf['app_title'])) {
         $app_title = $conf['app_title'];
     }
@@ -92,6 +104,8 @@ if (file_exists('data/config.json')) {
                             <div class="pie-legend">
                                 <span class="legend-item"><span class="dot txt"></span> TXT</span>
                                 <span class="legend-item"><span class="dot mp3"></span> MP3</span>
+                                <span class="legend-item"><span class="dot folder"></span> FOLDER</span>
+
                             </div>
                         </div>
                     </div>
@@ -111,6 +125,10 @@ if (file_exists('data/config.json')) {
                             </select>
                         </div>
                         
+                        <div class="action-btn" style="padding: 0; overflow: hidden; border: 1px solid #ddd;">
+                             <input type="date" class="date-picker" style="border: none; outline: none; padding: 5px; color: #555;">
+                        </div>
+
                         <div class="action-btn primary" id="btn-trigger-upload">
                             <ion-icon name="document-outline"></ion-icon> Upload Files
                         </div>
@@ -120,7 +138,6 @@ if (file_exists('data/config.json')) {
                         </div>
                     </div>
                     <div class="search-group">
-                        <input type="date" class="date-picker">
                         <input type="text" id="file-search" placeholder="Search files...">
                     </div>
                 </div>
