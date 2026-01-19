@@ -54,10 +54,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Filter Elements
     const filterSelect = document.getElementById('filterSelect');
     const datePicker = document.querySelector('.date-picker');
+    // === NEW: Search Input ===
+    const searchInput = document.getElementById('file-search');
 
     // Add Listeners for Filters
     if(filterSelect) filterSelect.addEventListener('change', renderTable);
     if(datePicker) datePicker.addEventListener('change', renderTable);
+    // === NEW: Add Listener for Search ===
+    if(searchInput) searchInput.addEventListener('input', renderTable);
 
     function loadDataAndRender() {
         // Pass the 'currentPath' to PHP so it knows which folder to scan
@@ -101,6 +105,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // 1. Get current filter values
         const filterVal = filterSelect ? filterSelect.value : 'all';
         const dateVal = datePicker ? datePicker.value : '';
+        // === NEW: Get search value ===
+        const searchVal = searchInput ? searchInput.value.toLowerCase().trim() : '';
 
         // 2. Filter the array
         const filesToShow = allFiles.filter(file => {
@@ -129,8 +135,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Both must be true to show the file
-            return typeMatch && dateMatch;
+            // === NEW: C. Check Search Name ===
+            let nameMatch = true;
+            if (searchVal !== '') {
+                // Check if file name includes the search text
+                nameMatch = file.name.toLowerCase().includes(searchVal);
+            }
+
+            // All must be true to show the file
+            return typeMatch && dateMatch && nameMatch;
         });
 
         // 3. Add "Go Back" Row if we are inside a folder
