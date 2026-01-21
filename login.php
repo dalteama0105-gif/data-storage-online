@@ -115,7 +115,7 @@
 
     <header class="top-header">
         <div class="header-left">
-            <img src="logo.jpg" alt="Logo" class="logo-img" style="height:40px; display:block;">
+            <img src="logo.png" alt="Logo" class="logo-img" style="height:40px; display:block;">
         </div>
 
         <div class="header-center">
