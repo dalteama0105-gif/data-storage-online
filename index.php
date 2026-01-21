@@ -24,7 +24,7 @@ $lang      = $config['lang'] ?? 'en';     // 'en', 'zh', or 'ms'
 $translations = [
     'en' => [
         'dashboard' => 'Dashboard',
-        'all_files' => 'All Files',
+        'all_files' => 'Files',
         'settings'  => 'Settings',
         'logout'    => 'Logout',
         'welcome'   => 'Welcome back',
@@ -46,7 +46,7 @@ $translations = [
     ],
     'ms' => [
         'dashboard' => 'Papan Pemuka',
-        'all_files' => 'Semua Fail',
+        'all_files' => 'Fail',
         'settings'  => 'Tetapan',
         'logout'    => 'Log Keluar',
         'welcome'   => 'Selamat Kembali',
@@ -210,15 +210,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             </thead>
                             <tbody id="file-table-body"></tbody>
                         </table>
-                    </div>
-                    <div class="folder-sidebar">
-                        <h4><?php echo $t['folders']; ?></h4>
-                        <ul class="folder-list">
-                            <li><ion-icon name="folder"></ion-icon> AI Technology</li>
-                            <li><ion-icon name="folder"></ion-icon> Complain</li>
-                            <li><ion-icon name="folder"></ion-icon> Personal</li>
-                            <li><ion-icon name="folder"></ion-icon> Archives</li>
-                        </ul>
                     </div>
                 </div>
             </div>

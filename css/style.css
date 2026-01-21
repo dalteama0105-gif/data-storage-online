@@ -130,8 +130,6 @@ body {
 .file-table td { padding: 12px; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
 .file-table tr:hover { background: var(--table-hover); }
 
-.folder-sidebar { width: 200px; border-left: 1px solid var(--border-color); padding: 15px; background: var(--bg-card); }
-.folder-sidebar h4 { margin-bottom: 15px; font-size: 12px; color: var(--text-muted); text-transform: uppercase; }
 .folder-list { list-style: none; }
 .folder-list li { padding: 8px 0; font-size: 13px; color: var(--text-main); display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .folder-list li:hover { color: var(--primary); }
