@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     
-    // === NEW: Track Current Folder Path ===
+    // === Track Current Folder Path ===
     let currentPath = ''; 
 
     // --- Navigation Elements ---
@@ -44,27 +44,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const tableBody = document.getElementById('file-table-body');
     const statTotal = document.getElementById('stat-total');
     const pieChart = document.getElementById('type-pie-chart');
-
-    // Upload Elements
-    const btnUpload = document.getElementById('btn-trigger-upload');
-    const fileInput = document.getElementById('fileInput');
-    const btnFolder = document.getElementById('btn-trigger-folder');
-    const folderInput = document.getElementById('folderInput');
     
     // Filter Elements
     const filterSelect = document.getElementById('filterSelect');
-    const datePicker = document.querySelector('.date-picker');
-    // === NEW: Search Input ===
+    
+    // === NEW: Date Range Elements ===
+    const dateStartInput = document.getElementById('dateStart');
+    const dateEndInput = document.getElementById('dateEnd');
+    
     const searchInput = document.getElementById('file-search');
 
-    // Add Listeners for Filters
     if(filterSelect) filterSelect.addEventListener('change', renderTable);
-    if(datePicker) datePicker.addEventListener('change', renderTable);
-    // === NEW: Add Listener for Search ===
+    // Listen to changes on BOTH date inputs
+    if(dateStartInput) dateStartInput.addEventListener('change', renderTable);
+    if(dateEndInput) dateEndInput.addEventListener('change', renderTable);
     if(searchInput) searchInput.addEventListener('input', renderTable);
 
     function loadDataAndRender() {
-        // Pass the 'currentPath' to PHP so it knows which folder to scan
         fetch('action_list_files.php?dir=' + encodeURIComponent(currentPath))
             .then(res => res.json())
             .then(data => {
@@ -77,7 +73,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderStats() {
         if(!statTotal) return;
-        // Only count total items in current view
         statTotal.textContent = allFiles.length;
 
         let txtCount = 0;
@@ -102,51 +97,45 @@ document.addEventListener('DOMContentLoaded', () => {
         if(!tableBody) return;
         tableBody.innerHTML = '';
 
-        // 1. Get current filter values
         const filterVal = filterSelect ? filterSelect.value : 'all';
-        const dateVal = datePicker ? datePicker.value : '';
-        // === NEW: Get search value ===
+        // Get Date Values
+        const startVal = dateStartInput ? dateStartInput.value : '';
+        const endVal = dateEndInput ? dateEndInput.value : '';
+        
         const searchVal = searchInput ? searchInput.value.toLowerCase().trim() : '';
 
-        // 2. Filter the array
         const filesToShow = allFiles.filter(file => {
-            
-            // A. Check Type
+            // 1. Type Check
             let typeMatch = false;
-            
-            if (filterVal === 'all') {
-                typeMatch = true;
-            } 
-            else if (file.type === 'folder') {
-                // If we are strictly filtering for mp3/txt, usually folders are hidden
-                typeMatch = false; 
-            } 
+            if (filterVal === 'all') { typeMatch = true; } 
+            else if (file.type === 'folder') { typeMatch = false; } 
             else {
                 if(filterVal === 'txt' && file.name.toLowerCase().endsWith('.txt')) typeMatch = true;
                 else if(filterVal === 'mp3' && file.name.toLowerCase().endsWith('.mp3')) typeMatch = true;
             }
 
-            // B. Check Date
+            // 2. Date Range Check (NEW)
             let dateMatch = true;
-            if (dateVal !== '') {
-                // Check if file.date (YYYY-MM-DD HH:MM) starts with the picked date
-                if (!file.date.startsWith(dateVal)) {
-                    dateMatch = false;
-                }
+            // File date comes as "YYYY-MM-DD HH:MM". We take the first 10 chars "YYYY-MM-DD"
+            const fileDate = file.date ? file.date.substring(0, 10) : '';
+
+            if (startVal !== '') {
+                if (fileDate < startVal) dateMatch = false;
+            }
+            if (endVal !== '') {
+                if (fileDate > endVal) dateMatch = false;
             }
 
-            // === NEW: C. Check Search Name ===
+            // 3. Search Check
             let nameMatch = true;
             if (searchVal !== '') {
-                // Check if file name includes the search text
                 nameMatch = file.name.toLowerCase().includes(searchVal);
             }
 
-            // All must be true to show the file
             return typeMatch && dateMatch && nameMatch;
         });
 
-        // 3. Add "Go Back" Row if we are inside a folder
+        // "Go Back" Row
         if (currentPath !== '') {
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -161,13 +150,11 @@ document.addEventListener('DOMContentLoaded', () => {
             tableBody.appendChild(tr);
         }
 
-        // 4. Handle Empty State
         if(filesToShow.length === 0 && currentPath === '') {
             tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">No files found matching filters.</td></tr>';
             return;
         }
 
-        // 5. Render Rows
         filesToShow.forEach((file, index) => {
             const tr = document.createElement('tr');
             
@@ -176,15 +163,11 @@ document.addEventListener('DOMContentLoaded', () => {
             let clickAction = '';
             let actionButtons = '';
 
-            // --- FOLDER RENDER LOGIC ---
            if (file.type === 'folder') {
                 typeLabel = 'FOLDER';
                 iconName = 'folder-open';
-                // Click name to enter folder
                 clickAction = `onclick="enterFolder('${file.name}')" style="cursor:pointer; color:#2563eb; font-weight:bold;"`;
                 
-                // === UPDATED: Added Download Button for Folders ===
-                // It points to our new action_download_folder.php
                 actionButtons = `
                      <a href="action_download_folder.php?folder=${encodeURIComponent(file.relativePath)}" class="icon-btn download" title="Download Folder as Zip">
                         <ion-icon name="cloud-download-outline"></ion-icon>
@@ -194,7 +177,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     </span>
                 `;
             }
-            // --- FILE RENDER LOGIC ---
             else {
                 if(file.name.endsWith('.mp3')) typeLabel = 'MP3';
                 if(file.name.endsWith('.txt')) typeLabel = 'TXT';
@@ -221,17 +203,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 </td>
                 <td>${file.date || '-'}</td>
                 <td><span class="badge">${typeLabel}</span></td>
-                <td style="white-space:nowrap;">
-                    ${actionButtons}
-                </td>
+                <td style="white-space:nowrap;">${actionButtons}</td>
             `;
             tableBody.appendChild(tr);
         });
     }
 
-    // --- Global Functions for HTML onClick access ---
-    
-    // 1. Enter Folder
+    // --- Global Functions ---
     window.enterFolder = function(folderName) {
         if (currentPath === '') {
             currentPath = folderName;
@@ -241,70 +219,15 @@ document.addEventListener('DOMContentLoaded', () => {
         loadDataAndRender();
     };
 
-    // 2. Go Back Up
     window.goUpFolder = function() {
         if (currentPath.includes('/')) {
-            // Remove the last segment
             currentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
         } else {
-            // Back to root
             currentPath = ''; 
         }
         loadDataAndRender();
     };
 
-    // --- Upload Handler (Supports Folders) ---
-    function handleUpload(fileList) {
-        const files = Array.from(fileList);
-        if(files.length === 0) return;
-
-        let processed = 0;
-        files.forEach(file => {
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            // If inside a folder, prepend currentPath to the relative path
-            let uploadPath = file.name;
-            if (file.webkitRelativePath) {
-                uploadPath = file.webkitRelativePath; 
-                if(currentPath !== '') {
-                    uploadPath = currentPath + '/' + uploadPath;
-                }
-            } else {
-                if(currentPath !== '') {
-                    uploadPath = currentPath + '/' + file.name;
-                }
-            }
-            
-            formData.append('relativePath', uploadPath);
-
-            fetch('action_upload.php', { method: 'POST', body: formData })
-                .then(res => res.json())
-                .then(data => {
-                    processed++;
-                    if(processed === files.length) {
-                        loadDataAndRender();
-                    }
-                })
-                .catch(err => console.error(err));
-        });
-    }
-
-    if(btnUpload) btnUpload.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', (e) => {
-        handleUpload(e.target.files);
-        fileInput.value = ''; 
-    });
-
-    if(btnFolder) btnFolder.addEventListener('click', () => folderInput.click());
-    if(folderInput) {
-        folderInput.addEventListener('change', (e) => {
-            handleUpload(e.target.files);
-            folderInput.value = ''; 
-        });
-    }
-
-    // --- Delete Handler ---
     window.deleteFile = function(filename) {
         if(!confirm(`Delete ${filename}?`)) return;
         
@@ -318,6 +241,113 @@ document.addEventListener('DOMContentLoaded', () => {
                 else { alert('Error: ' + data.message); }
             });
     };
+
+    // === NEW: Modal Logic for Upload/Create Folder ===
+    const modal = document.getElementById('uploadModal');
+    const btnOpenModal = document.getElementById('btn-open-modal');
+    const btnCloseModal = document.getElementById('btn-close-modal');
+    const btnCancelModal = document.getElementById('btn-cancel-modal');
+    const btnSaveModal = document.getElementById('btn-save-modal');
+
+    const inputFolder = document.getElementById('newFolderName');
+    const inputAudio = document.getElementById('modalAudioInput');
+    const inputText = document.getElementById('modalTextInput');
+    
+    const labelAudio = document.getElementById('audioFileName');
+    const labelText = document.getElementById('textFileName');
+
+    // 1. Open Modal
+    if(btnOpenModal) {
+        btnOpenModal.addEventListener('click', () => {
+            modal.classList.add('active');
+            // Reset fields
+            inputFolder.value = '';
+            inputAudio.value = '';
+            inputText.value = '';
+            labelAudio.textContent = 'Click to select MP3...';
+            labelText.textContent = 'Click to select TXT...';
+        });
+    }
+
+    // 2. Close Modal
+    function closeModal() {
+        modal.classList.remove('active');
+    }
+    if(btnCloseModal) btnCloseModal.addEventListener('click', closeModal);
+    if(btnCancelModal) btnCancelModal.addEventListener('click', closeModal);
+
+    // 3. Display Selected Filenames
+    if(inputAudio) {
+        inputAudio.addEventListener('change', (e) => {
+            if(e.target.files.length > 0) labelAudio.textContent = e.target.files[0].name;
+        });
+    }
+    if(inputText) {
+        inputText.addEventListener('change', (e) => {
+            if(e.target.files.length > 0) labelText.textContent = e.target.files[0].name;
+        });
+    }
+
+    // 4. SAVE Handler
+    if(btnSaveModal) {
+        btnSaveModal.addEventListener('click', async () => {
+            const folderName = inputFolder.value.trim();
+            const audioFile = inputAudio.files[0];
+            const textFile = inputText.files[0];
+
+            if(!folderName) {
+                alert("Please enter a folder name.");
+                return;
+            }
+
+            // Step A: Create the Folder
+            try {
+                const fd = new FormData();
+                fd.append('folder_name', folderName);
+                fd.append('current_path', currentPath);
+
+                let res = await fetch('action_create_folder.php', { method: 'POST', body: fd });
+                let json = await res.json();
+
+                if(!json.success) {
+                    alert("Error creating folder: " + json.message);
+                    return;
+                }
+
+                // Step B: Upload files INTO that folder (if selected)
+                const filesToUpload = [];
+                if(audioFile) filesToUpload.push(audioFile);
+                if(textFile) filesToUpload.push(textFile);
+
+                if(filesToUpload.length > 0) {
+                    const uploadPromises = filesToUpload.map(file => {
+                        const uploadFd = new FormData();
+                        uploadFd.append('file', file);
+                        
+                        // Construct path: CurrentPath / NewFolder / FileName
+                        let uploadPath = folderName + '/' + file.name;
+                        if(currentPath !== '') {
+                            uploadPath = currentPath + '/' + folderName + '/' + file.name;
+                        }
+                        
+                        uploadFd.append('relativePath', uploadPath);
+                        return fetch('action_upload.php', { method: 'POST', body: uploadFd });
+                    });
+
+                    await Promise.all(uploadPromises);
+                }
+
+                // Step C: Success!
+                closeModal();
+                loadDataAndRender();
+                alert("Saved successfully!");
+
+            } catch (err) {
+                console.error(err);
+                alert("An error occurred. Check console for details.");
+            }
+        });
+    }
 
     // Initial Load
     loadDataAndRender();

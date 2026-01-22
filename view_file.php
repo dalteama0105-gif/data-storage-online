@@ -10,10 +10,21 @@ if (!isset($_SESSION['user'])) {
 $username = $_SESSION['user'];
 $filename = $_GET['f'] ?? '';
 
+// === 修正开始 ===
 // 2. Prevent hacking (Directory Traversal)
-$safe_filename = basename($filename); 
+// 旧代码使用了 basename($filename)，这会导致文件夹路径丢失。
+// 新逻辑：只要不包含 ".." 就可以允许访问子文件夹。
+
+if (strpos($filename, '..') !== false) {
+    die("Error: Invalid file path.");
+}
+
+// 移除开头的斜杠，防止绝对路径攻击
+$safe_filename = ltrim($filename, '/');
+
 $file_path = "uploads/$username/$safe_filename";
-$web_path  = "uploads/$username/$safe_filename"; // Path for HTML tags
+$web_path  = "uploads/$username/$safe_filename"; 
+// === 修正结束 ===
 
 // 3. Check if file exists
 if (empty($filename) || !file_exists($file_path)) {
@@ -25,7 +36,7 @@ $ext = strtolower(pathinfo($safe_filename, PATHINFO_EXTENSION));
 $is_image = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
 $is_audio = in_array($ext, ['mp3', 'wav', 'ogg']);
 $is_video = in_array($ext, ['mp4', 'webm']);
-$is_text  = in_array($ext, ['txt', 'json', 'php', 'js', 'css', 'html']);
+$is_text  = in_array($ext, ['txt', 'json', 'php', 'js', 'css', 'html', 'md']); // Added md
 
 // Read text content securely if needed
 $text_content = "";
@@ -38,8 +49,8 @@ if ($is_text) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View <?php echo htmlspecialchars($safe_filename); ?> - Data Storage</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>View <?php echo htmlspecialchars(basename($safe_filename)); ?> - Data Storage</title>
+    <link rel="stylesheet" href="css/style.css?v=<?php echo time(); ?>">
     <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
     <style>
         /* 1. Make the body a Flex Container (Fixes Footer) */
@@ -47,30 +58,23 @@ if ($is_text) {
             background: #f3f4f6;
             display: flex;
             flex-direction: column;
-            min-height: 100vh; /* Forces body to take full screen height */
+            min-height: 100vh; 
             margin: 0;
         }
 
-        /* 2. Update the Viewer Container (Make it Bigger) */
+        /* 2. Update the Viewer Container */
         .viewer-container {
-            /* Size Settings */
-            width: 90%;            /* Takes up 90% of the screen width */
-            max-width: 1600px;     /* Maximum width (increased from 900px) */
-            min-height: 75vh;      /* Takes up 75% of screen height */
-            
-            /* Centering & Spacing */
-            margin: 30px auto;     /* Center horizontally */
+            width: 90%;            
+            max-width: 1600px;     
+            min-height: 75vh;      
+            margin: 30px auto;     
             padding: 40px;
-            
-            /* Styling */
             background: white;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            
-            /* Internal Layout */
             display: flex;
             flex-direction: column;
-            align-items: center;   /* Centers content inside the card */
+            align-items: center;   
         }
 
         /* 3. Header Styling */
@@ -87,11 +91,11 @@ if ($is_text) {
         .file-meta { font-size: 14px; color: #888; margin-top: 5px; }
         
         /* 4. Content Previews */
-        .preview-box { width: 100%; text-align: center; flex: 1; /* Pushes content to fill space */ }
+        .preview-box { width: 100%; text-align: center; flex: 1; }
         
         img.preview { 
             max-width: 100%; 
-            max-height: 70vh; /* Allows image to be taller */
+            max-height: 70vh; 
             border-radius: 8px; 
             box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
         }
@@ -107,7 +111,7 @@ if ($is_text) {
             overflow-x: auto;
             font-family: 'Consolas', monospace;
             white-space: pre-wrap;
-            max-height: 700px; /* Increased height for code */
+            max-height: 700px; 
             font-size: 14px;
         }
 
@@ -123,13 +127,14 @@ if ($is_text) {
             transition: 0.2s;
             padding: 8px 12px;
             border-radius: 6px;
+            cursor: pointer;
         }
         .btn-back:hover { background: #e5e7eb; color: #2563eb; }
         
         .download-btn {
             background: #2563eb;
             color: white;
-            padding: 12px 30px; /* Bigger button */
+            padding: 12px 30px;
             border-radius: 6px;
             text-decoration: none;
             display: inline-flex;
@@ -142,11 +147,11 @@ if ($is_text) {
         }
         .download-btn:hover { background: #1d4ed8; }
 
-        /* 6. Footer Fix (Works with Flex Body) */
+        /* 6. Footer Fix */
         .bottom-footer {
-            margin-top: auto; /* Pushes footer to the very bottom */
+            margin-top: auto; 
             width: 100%;
-            background: #000; /* Ensure it matches your screenshot */
+            background: #000; 
             color: #fff;
             padding: 15px;
             text-align: center;
@@ -157,7 +162,7 @@ if ($is_text) {
 
     <header class="top-header" style="padding: 0 20px;">
         <div class="header-brand" style="border:none; background:transparent; padding:0;">
-            <img src="logo.jpg" alt="Logo" class="logo-img">
+            <img src="logo.png" alt="Logo" class="logo-img">
             <h2>Data Storage Online</h2>
         </div>
         <div class="header-dynamic-center">
@@ -169,12 +174,12 @@ if ($is_text) {
         
         <div class="file-header">
             <div>
-                <a href="index.php" class="btn-back">
-                    <ion-icon name="arrow-back-outline"></ion-icon> Back to Dashboard
+                <a href="#" onclick="window.close()" class="btn-back">
+                    <ion-icon name="arrow-back-outline"></ion-icon> Close Window
                 </a>
             </div>
             <div class="file-title" style="text-align:right;">
-                <h2><?php echo htmlspecialchars($safe_filename); ?></h2>
+                <h2><?php echo htmlspecialchars(basename($safe_filename)); ?></h2>
                 <div class="file-meta">
                     Type: <?php echo strtoupper($ext); ?> | 
                     Size: <?php echo round(filesize($file_path) / 1024, 2); ?> KB
@@ -214,7 +219,7 @@ if ($is_text) {
             <?php endif; ?>
 
             <div style="margin-top: 40px;">
-                <a href="<?php echo $web_path; ?>" download="<?php echo $safe_filename; ?>" class="download-btn">
+                <a href="<?php echo $web_path; ?>" download="<?php echo basename($safe_filename); ?>" class="download-btn">
                     <ion-icon name="cloud-download-outline"></ion-icon> Download File
                 </a>
             </div>
@@ -223,7 +228,7 @@ if ($is_text) {
     </div>
 
     <footer class="bottom-footer">
-        <p>© 2026 DAL-sh. All rights reserved.</p>
+        <p>© 2026 Data Storage Online. All rights reserved.</p>
     </footer>
 
 </body>

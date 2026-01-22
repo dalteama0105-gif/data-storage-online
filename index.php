@@ -97,7 +97,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $t['dashboard']; ?> - Data Storage</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+    
+    <link rel="stylesheet" href="css/style.css?v=<?php echo time(); ?>">
+    
     <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
 </head>
 <body class="<?php echo ($theme === 'dark') ? 'dark-mode' : ''; ?>">
@@ -168,32 +170,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
             <div id="view-files" class="content-view" style="display: none;">
                 <div class="file-toolbar">
-                    <div class="tab-label"><?php echo $t['all_files']; ?></div>
-                    <div class="toolbar-actions">
+                    
+                    <button class="action-btn primary" id="btn-open-modal" style="padding: 8px 16px; font-weight: 600;">
+                        <ion-icon name="add-circle-outline" style="font-size:18px;"></ion-icon> 
+                        Import Folder
+                    </button>
+
+                    <div style="display: flex; gap: 10px; align-items: center;">
                         
-                        <div class="action-btn" style="padding: 0; overflow: hidden;">
-                            <select id="filterSelect" class="settings-input" style="border: none; background: transparent; height: 100%;">
-                                <option value="all">Filter: All</option>
-                                <option value="txt">Type: Text (.txt)</option>
-                                <option value="mp3">Type: Audio (.mp3)</option>
-                            </select>
-                        </div>
-                        
-                        <div class="action-btn" style="padding: 0; overflow: hidden; border: 1px solid var(--border-color);">
-                             <input type="date" class="date-picker" style="border: none; outline: none; padding: 5px; background: transparent; color: inherit;">
+                        <div style="display: flex; gap: 5px; align-items: center;">
+                            <div class="action-btn" style="padding: 0 5px; overflow: hidden; border: 1px solid var(--border-color); display:flex; align-items:center;">
+                                <span style="font-size: 11px; color: var(--text-muted); margin-right: 2px;">From</span>
+                                <input type="date" id="dateStart" style="border: none; outline: none; padding: 5px 0; background: transparent; color: inherit; font-size: 12px; width: 100px;">
+                            </div>
+                            
+                            <span style="color: var(--text-muted);">-</span>
+
+                            <div class="action-btn" style="padding: 0 5px; overflow: hidden; border: 1px solid var(--border-color); display:flex; align-items:center;">
+                                <span style="font-size: 11px; color: var(--text-muted); margin-right: 2px;">To</span>
+                                <input type="date" id="dateEnd" style="border: none; outline: none; padding: 5px 0; background: transparent; color: inherit; font-size: 12px; width: 100px;">
+                            </div>
                         </div>
 
-                        <div class="action-btn primary" id="btn-trigger-upload">
-                            <ion-icon name="document-outline"></ion-icon> <?php echo $t['upload_f']; ?>
+                        <div class="search-group">
+                            <input type="text" id="file-search" placeholder="<?php echo $t['search']; ?>">
                         </div>
+                    </div>
 
-                        <div class="action-btn primary" id="btn-trigger-folder" style="background: #0ea5e9; border-color: #0ea5e9;">
-                            <ion-icon name="folder-open-outline"></ion-icon> <?php echo $t['upload_d']; ?>
-                        </div>
-                    </div>
-                    <div class="search-group">
-                        <input type="text" id="file-search" placeholder="<?php echo $t['search']; ?>">
-                    </div>
                 </div>
                 <div class="file-workspace">
                     <div class="file-table-container">
@@ -255,8 +258,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         <p>© 2026 Data Storage Online. All rights reserved.</p>
     </footer>
 
-    <input type="file" id="fileInput" style="display: none;" multiple>
-    <input type="file" id="folderInput" style="display: none;" webkitdirectory directory multiple>
+    <div class="modal-overlay" id="uploadModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">Create New Folder</div>
+                <button class="btn-close-modal" id="btn-close-modal">
+                    <ion-icon name="close-outline"></ion-icon>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="modal-input-group">
+                    <label>Folder Name</label>
+                    <input type="text" id="newFolderName" class="settings-input" placeholder="e.g. Project Alpha">
+                </div>
+
+                <div class="modal-input-group">
+                    <label>Import Audio File (Optional)</label>
+                    <div class="file-upload-box" onclick="document.getElementById('modalAudioInput').click()">
+                        <ion-icon name="musical-notes-outline" style="font-size: 24px; color: var(--primary);"></ion-icon>
+                        <p id="audioFileName">Click to select MP3...</p>
+                        <input type="file" id="modalAudioInput" accept=".mp3,audio/mpeg" style="display: none;">
+                    </div>
+                </div>
+
+                <div class="modal-input-group">
+                    <label>Import Text File (Optional)</label>
+                    <div class="file-upload-box" onclick="document.getElementById('modalTextInput').click()">
+                        <ion-icon name="document-text-outline" style="font-size: 24px; color: #f59e0b;"></ion-icon>
+                        <p id="textFileName">Click to select TXT...</p>
+                        <input type="file" id="modalTextInput" accept=".txt,text/plain" style="display: none;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-modal btn-cancel" id="btn-cancel-modal">Cancel</button>
+                <button class="btn-modal btn-confirm" id="btn-save-modal">Save</button>
+            </div>
+        </div>
+    </div>
 
     <script src="js/main.js"></script>
 </body>
