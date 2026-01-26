@@ -1,25 +1,23 @@
 document.addEventListener('DOMContentLoaded', () => {
     
-    // === Track Current Folder Path ===
     let currentPath = ''; 
+    let allFiles = [];
 
-    // --- Navigation Elements ---
+    // --- Navigation ---
     const navDashboard = document.getElementById('nav-dashboard');
     const navFiles = document.getElementById('nav-files');
-    const navSettings = document.getElementById('nav-settings');
-    
+    const navSettingsBtn = document.getElementById('nav-settings-btn'); // Triggers Modal
+
     const viewDashboard = document.getElementById('view-dashboard');
     const viewFiles = document.getElementById('view-files');
-    const viewSettings = document.getElementById('view-settings');
+    const settingsModal = document.getElementById('settingsModal');
 
     function switchView(viewName) {
         viewDashboard.style.display = 'none';
         viewFiles.style.display = 'none';
-        viewSettings.style.display = 'none';
         
         navDashboard.classList.remove('active');
         navFiles.classList.remove('active');
-        if(navSettings) navSettings.classList.remove('active');
 
         if(viewName === 'dashboard') {
             viewDashboard.style.display = 'block';
@@ -29,35 +27,45 @@ document.addEventListener('DOMContentLoaded', () => {
             viewFiles.style.display = 'block';
             navFiles.classList.add('active');
             loadDataAndRender();
-        } else if(viewName === 'settings') {
-            viewSettings.style.display = 'block';
-            if(navSettings) navSettings.classList.add('active');
         }
     }
 
-    if(navDashboard) navDashboard.addEventListener('click', (e) => { e.preventDefault(); switchView('dashboard'); });
-    if(navFiles) navFiles.addEventListener('click', (e) => { e.preventDefault(); switchView('files'); });
-    if(navSettings) navSettings.addEventListener('click', (e) => { e.preventDefault(); switchView('settings'); });
+    navDashboard.addEventListener('click', (e) => { e.preventDefault(); switchView('dashboard'); });
+    navFiles.addEventListener('click', (e) => { e.preventDefault(); switchView('files'); });
+
+    // --- Settings Modal Logic ---
+    navSettingsBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        settingsModal.classList.add('active');
+        if(typeof CURRENT_USER_ROLE !== 'undefined' && CURRENT_USER_ROLE === 'Admin') {
+            loadUsers(); // Load users if Admin
+        }
+    });
+
+    document.getElementById('btn-close-settings').addEventListener('click', () => {
+        settingsModal.classList.remove('active');
+    });
+
+    // Tab Switching
+    const tabs = document.querySelectorAll('.tab-item');
+    const contents = document.querySelectorAll('.tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
+            
+            tab.classList.add('active');
+            document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+        });
+    });
 
     // --- File Logic ---
-    let allFiles = [];
     const tableBody = document.getElementById('file-table-body');
     const statTotal = document.getElementById('stat-total');
     const pieChart = document.getElementById('type-pie-chart');
-    
-    // Filter Elements
-    const filterSelect = document.getElementById('filterSelect');
-    
-    // === NEW: Date Range Elements ===
-    const dateStartInput = document.getElementById('dateStart');
-    const dateEndInput = document.getElementById('dateEnd');
-    
     const searchInput = document.getElementById('file-search');
 
-    if(filterSelect) filterSelect.addEventListener('change', renderTable);
-    // Listen to changes on BOTH date inputs
-    if(dateStartInput) dateStartInput.addEventListener('change', renderTable);
-    if(dateEndInput) dateEndInput.addEventListener('change', renderTable);
     if(searchInput) searchInput.addEventListener('input', renderTable);
 
     function loadDataAndRender() {
@@ -67,157 +75,72 @@ document.addEventListener('DOMContentLoaded', () => {
                 allFiles = data;
                 renderStats();
                 renderTable();
-            })
-            .catch(err => console.error("Error loading files:", err));
+            });
     }
 
     function renderStats() {
         if(!statTotal) return;
         statTotal.textContent = allFiles.length;
-
-        let txtCount = 0;
-        let mp3Count = 0;
-        allFiles.forEach(f => {
-            if(f.name.endsWith('.txt')) txtCount++;
-            else if(f.name.endsWith('.mp3')) mp3Count++;
-        });
-
+        let txtCount = allFiles.filter(f => f.name.endsWith('.txt')).length;
+        let mp3Count = allFiles.filter(f => f.name.endsWith('.mp3')).length;
+        
         const total = allFiles.length || 1; 
         const txtPercent = (txtCount / total) * 100;
         const mp3Percent = (mp3Count / total) * 100;
-        const p1 = txtPercent;
-        const p2 = txtPercent + mp3Percent;
-
+        
         if(pieChart) {
-            pieChart.style.background = `conic-gradient(#f59e0b 0% ${p1}%, #2563eb ${p1}% ${p2}%, #e5e7eb ${p2}% 100%)`;
+            pieChart.style.background = `conic-gradient(#f59e0b 0% ${txtPercent}%, #2563eb ${txtPercent}% ${txtPercent + mp3Percent}%, #e5e7eb 0 100%)`;
         }
     }
 
     function renderTable() {
         if(!tableBody) return;
         tableBody.innerHTML = '';
-
-        const filterVal = filterSelect ? filterSelect.value : 'all';
-        // Get Date Values
-        const startVal = dateStartInput ? dateStartInput.value : '';
-        const endVal = dateEndInput ? dateEndInput.value : '';
-        
         const searchVal = searchInput ? searchInput.value.toLowerCase().trim() : '';
 
         const filesToShow = allFiles.filter(file => {
-            // 1. Type Check
-            let typeMatch = false;
-            if (filterVal === 'all') { typeMatch = true; } 
-            else if (file.type === 'folder') { typeMatch = false; } 
-            else {
-                if(filterVal === 'txt' && file.name.toLowerCase().endsWith('.txt')) typeMatch = true;
-                else if(filterVal === 'mp3' && file.name.toLowerCase().endsWith('.mp3')) typeMatch = true;
-            }
-
-            // 2. Date Range Check (NEW)
-            let dateMatch = true;
-            // File date comes as "YYYY-MM-DD HH:MM". We take the first 10 chars "YYYY-MM-DD"
-            const fileDate = file.date ? file.date.substring(0, 10) : '';
-
-            if (startVal !== '') {
-                if (fileDate < startVal) dateMatch = false;
-            }
-            if (endVal !== '') {
-                if (fileDate > endVal) dateMatch = false;
-            }
-
-            // 3. Search Check
-            let nameMatch = true;
-            if (searchVal !== '') {
-                nameMatch = file.name.toLowerCase().includes(searchVal);
-            }
-
-            return typeMatch && dateMatch && nameMatch;
+            if (searchVal !== '' && !file.name.toLowerCase().includes(searchVal)) return false;
+            return true;
         });
 
-        // "Go Back" Row
         if (currentPath !== '') {
             const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td></td>
-                <td><ion-icon name="arrow-undo" style="font-size:18px; color:#666;"></ion-icon></td>
-                <td colspan="4">
-                    <a href="#" onclick="goUpFolder()" style="font-weight:bold; color:#333; text-decoration:none; display:flex; align-items:center; gap:5px;">
-                        ... (Go Back)
-                    </a>
-                </td>
-            `;
+            tr.innerHTML = `<td></td><td colspan="4"><a href="#" onclick="goUpFolder()" style="font-weight:bold; color:#333; text-decoration:none;">... (Go Back)</a></td>`;
             tableBody.appendChild(tr);
-        }
-
-        if(filesToShow.length === 0 && currentPath === '') {
-            tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">No files found matching filters.</td></tr>';
-            return;
         }
 
         filesToShow.forEach((file, index) => {
             const tr = document.createElement('tr');
-            
             let typeLabel = 'FILE';
             let iconName = 'document-outline';
-            let clickAction = '';
-            let actionButtons = '';
-
-           if (file.type === 'folder') {
+            let nameAction = '';
+            
+            if (file.type === 'folder') {
                 typeLabel = 'FOLDER';
                 iconName = 'folder-open';
-                clickAction = `onclick="enterFolder('${file.name}')" style="cursor:pointer; color:#2563eb; font-weight:bold;"`;
-                
-                actionButtons = `
-                     <a href="action_download_folder.php?folder=${encodeURIComponent(file.relativePath)}" class="icon-btn download" title="Download Folder as Zip">
-                        <ion-icon name="cloud-download-outline"></ion-icon>
-                     </a>
-                     <span class="icon-btn delete" onclick="deleteFile('${file.relativePath}')" title="Delete Folder">
-                        <ion-icon name="trash-outline"></ion-icon>
-                    </span>
-                `;
-            }
-            else {
+                // CHANGED: Click triggers popup, not direct entry
+                nameAction = `onclick="showFolderPopup('${file.name}', '${file.relativePath}')" style="cursor:pointer; color:#2563eb; font-weight:bold;"`;
+            } else {
                 if(file.name.endsWith('.mp3')) typeLabel = 'MP3';
                 if(file.name.endsWith('.txt')) typeLabel = 'TXT';
-                
-                actionButtons = `
-                    <span class="icon-btn open" onclick="window.open('view_file.php?f=' + encodeURIComponent('${file.relativePath}'), '_blank')" title="Open">
-                        <ion-icon name="eye-outline"></ion-icon>
-                    </span>
-                    <a href="${file.path}" download="${file.name}" class="icon-btn download" title="Download">
-                        <ion-icon name="cloud-download-outline"></ion-icon>
-                    </a>
-                    <span class="icon-btn delete" onclick="deleteFile('${file.relativePath}')" title="Delete">
-                        <ion-icon name="trash-outline"></ion-icon>
-                    </span>
-                `;
+                nameAction = `onclick="window.open('view_file.php?f=' + encodeURIComponent('${file.relativePath}'), '_blank')" style="cursor:pointer;"`;
             }
 
+            // Simple delete button
+            const deleteBtn = `<span class="icon-btn delete" onclick="deleteFile('${file.relativePath}')"><ion-icon name="trash-outline"></ion-icon></span>`;
+
             tr.innerHTML = `
-                <td><input type="checkbox"></td>
                 <td>${index + 1}</td>
-                <td ${clickAction}>
-                    <ion-icon name="${iconName}" style="vertical-align:bottom; margin-right:5px;"></ion-icon>
-                    ${file.name}
-                </td>
-                <td>${file.date || '-'}</td>
+                <td ${nameAction}><ion-icon name="${iconName}" style="vertical-align:bottom; margin-right:5px;"></ion-icon> ${file.name}</td>
+                <td>${file.date ? file.date.substring(0,10) : '-'}</td>
                 <td><span class="badge">${typeLabel}</span></td>
-                <td style="white-space:nowrap;">${actionButtons}</td>
+                <td>${deleteBtn}</td>
             `;
             tableBody.appendChild(tr);
         });
     }
 
     // --- Global Functions ---
-    window.enterFolder = function(folderName) {
-        if (currentPath === '') {
-            currentPath = folderName;
-        } else {
-            currentPath = currentPath + '/' + folderName;
-        }
-        loadDataAndRender();
-    };
 
     window.goUpFolder = function() {
         if (currentPath.includes('/')) {
@@ -230,125 +153,165 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.deleteFile = function(filename) {
         if(!confirm(`Delete ${filename}?`)) return;
+        const fd = new FormData();
+        fd.append('filename', filename);
+        fetch('action_delete.php', { method: 'POST', body: fd }).then(r=>r.json()).then(d=>{
+            if(d.success) loadDataAndRender();
+            else alert(d.message);
+        });
+    };
+
+    // === NEW: FOLDER POPUP LOGIC ===
+    window.showFolderPopup = function(folderName, relPath) {
+        const modal = document.getElementById('folderInfoModal');
+        const title = document.getElementById('info-folder-name');
+        const audio = document.getElementById('info-audio-name');
+        const txt = document.getElementById('info-txt-name');
         
-        const formData = new FormData();
-        formData.append('filename', filename);
-        
-        fetch('action_delete.php', { method: 'POST', body: formData })
+        title.textContent = folderName;
+        audio.textContent = 'Scanning...';
+        txt.textContent = 'Scanning...';
+        modal.classList.add('active');
+
+        // Fetch contents of the clicked folder to find MP3/TXT
+        fetch('action_list_files.php?dir=' + encodeURIComponent(relPath))
             .then(res => res.json())
-            .then(data => {
-                if(data.success) { loadDataAndRender(); } 
-                else { alert('Error: ' + data.message); }
+            .then(files => {
+                const mp3File = files.find(f => f.name.endsWith('.mp3'));
+                const txtFile = files.find(f => f.name.endsWith('.txt'));
+
+                audio.textContent = mp3File ? mp3File.name : 'No Audio File';
+                txt.textContent = txtFile ? txtFile.name : 'No Text File';
+            })
+            .catch(() => {
+                audio.textContent = 'Error loading info';
+                txt.textContent = 'Error loading info';
             });
     };
 
-    // === NEW: Modal Logic for Upload/Create Folder ===
-    const modal = document.getElementById('uploadModal');
-    const btnOpenModal = document.getElementById('btn-open-modal');
-    const btnCloseModal = document.getElementById('btn-close-modal');
-    const btnCancelModal = document.getElementById('btn-cancel-modal');
-    const btnSaveModal = document.getElementById('btn-save-modal');
+    // === ADMIN: USER MANAGEMENT ===
+    window.loadUsers = function() {
+        const tbody = document.getElementById('user-list-body');
+        if(!tbody) return;
+        tbody.innerHTML = '<tr><td colspan="4">Loading...</td></tr>';
 
-    const inputFolder = document.getElementById('newFolderName');
-    const inputAudio = document.getElementById('modalAudioInput');
-    const inputText = document.getElementById('modalTextInput');
+        fetch('action_admin_users.php?action=list')
+            .then(r => r.json())
+            .then(users => {
+                tbody.innerHTML = '';
+                users.forEach(u => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${u.name || '-'}</td>
+                        <td>${u.department || '-'}</td>
+                        <td>${u.username}</td>
+                        <td>
+                            <button onclick="resetUser('${u.username}')" style="font-size:11px; padding:4px 8px; cursor:pointer;">Reset Pass</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            });
+    };
+
+    const btnAddUser = document.getElementById('btn-add-user');
+    if(btnAddUser) {
+        btnAddUser.addEventListener('click', () => {
+            const name = document.getElementById('new_u_name').value;
+            const email = document.getElementById('new_u_email').value;
+            const phone = document.getElementById('new_u_phone').value;
+            const dept = document.getElementById('new_u_dept').value;
+            const user = document.getElementById('new_u_username').value;
+            const pass = document.getElementById('new_u_pass').value;
+
+            if(!user || !pass) { alert("Username and Password required"); return; }
+
+            const fd = new FormData();
+            fd.append('action', 'add');
+            fd.append('name', name);
+            fd.append('email', email);
+            fd.append('phone', phone);
+            fd.append('department', dept);
+            fd.append('username', user);
+            fd.append('password', pass);
+
+            fetch('action_admin_users.php', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(res => {
+                    if(res.success) {
+                        alert("User Added!");
+                        loadUsers();
+                        document.getElementById('new_u_username').value = '';
+                        document.getElementById('new_u_pass').value = '';
+                    } else {
+                        alert("Error: " + res.message);
+                    }
+                });
+        });
+    }
+
+    window.resetUser = function(username) {
+        if(!confirm(`Reset password for ${username} to 'qwer1234'?`)) return;
+        
+        const fd = new FormData();
+        fd.append('action', 'reset');
+        fd.append('username', username);
+        
+        fetch('action_admin_users.php', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(res => {
+                alert(res.message);
+            });
+    }
+
+    // --- Upload Modal Logic (Existing) ---
+    const uploadModal = document.getElementById('uploadModal');
+    const btnOpenUpload = document.getElementById('btn-open-upload-modal');
+    const btnSaveFolder = document.getElementById('btn-save-folder');
+
+    if(btnOpenUpload) {
+        btnOpenUpload.addEventListener('click', () => {
+            uploadModal.classList.add('active');
+        });
+    }
+
+    if(btnSaveFolder) {
+        btnSaveFolder.addEventListener('click', async () => {
+            const folderName = document.getElementById('newFolderName').value;
+            const audioFile = document.getElementById('modalAudioInput').files[0];
+            const textFile = document.getElementById('modalTextInput').files[0];
+
+            if(!folderName) { alert("Folder name required"); return; }
+
+            // 1. Create Folder
+            let fd = new FormData();
+            fd.append('folder_name', folderName);
+            fd.append('current_path', currentPath);
+            let res = await fetch('action_create_folder.php', { method:'POST', body:fd });
+            let json = await res.json();
+            
+            if(!json.success) { alert(json.message); return; }
+
+            // 2. Upload Files
+            let files = [];
+            if(audioFile) files.push(audioFile);
+            if(textFile) files.push(textFile);
+
+            for(let f of files) {
+                let uFd = new FormData();
+                uFd.append('file', f);
+                let path = (currentPath ? currentPath + '/' : '') + folderName + '/' + f.name;
+                uFd.append('relativePath', path);
+                await fetch('action_upload.php', { method:'POST', body:uFd });
+            }
+
+            uploadModal.classList.remove('active');
+            loadDataAndRender();
+        });
+    }
     
-    const labelAudio = document.getElementById('audioFileName');
-    const labelText = document.getElementById('textFileName');
-
-    // 1. Open Modal
-    if(btnOpenModal) {
-        btnOpenModal.addEventListener('click', () => {
-            modal.classList.add('active');
-            // Reset fields
-            inputFolder.value = '';
-            inputAudio.value = '';
-            inputText.value = '';
-            labelAudio.textContent = 'Click to select MP3...';
-            labelText.textContent = 'Click to select TXT...';
-        });
+    // Init
+    if(document.getElementById('view-dashboard').style.display !== 'none') {
+        loadDataAndRender();
     }
-
-    // 2. Close Modal
-    function closeModal() {
-        modal.classList.remove('active');
-    }
-    if(btnCloseModal) btnCloseModal.addEventListener('click', closeModal);
-    if(btnCancelModal) btnCancelModal.addEventListener('click', closeModal);
-
-    // 3. Display Selected Filenames
-    if(inputAudio) {
-        inputAudio.addEventListener('change', (e) => {
-            if(e.target.files.length > 0) labelAudio.textContent = e.target.files[0].name;
-        });
-    }
-    if(inputText) {
-        inputText.addEventListener('change', (e) => {
-            if(e.target.files.length > 0) labelText.textContent = e.target.files[0].name;
-        });
-    }
-
-    // 4. SAVE Handler
-    if(btnSaveModal) {
-        btnSaveModal.addEventListener('click', async () => {
-            const folderName = inputFolder.value.trim();
-            const audioFile = inputAudio.files[0];
-            const textFile = inputText.files[0];
-
-            if(!folderName) {
-                alert("Please enter a folder name.");
-                return;
-            }
-
-            // Step A: Create the Folder
-            try {
-                const fd = new FormData();
-                fd.append('folder_name', folderName);
-                fd.append('current_path', currentPath);
-
-                let res = await fetch('action_create_folder.php', { method: 'POST', body: fd });
-                let json = await res.json();
-
-                if(!json.success) {
-                    alert("Error creating folder: " + json.message);
-                    return;
-                }
-
-                // Step B: Upload files INTO that folder (if selected)
-                const filesToUpload = [];
-                if(audioFile) filesToUpload.push(audioFile);
-                if(textFile) filesToUpload.push(textFile);
-
-                if(filesToUpload.length > 0) {
-                    const uploadPromises = filesToUpload.map(file => {
-                        const uploadFd = new FormData();
-                        uploadFd.append('file', file);
-                        
-                        // Construct path: CurrentPath / NewFolder / FileName
-                        let uploadPath = folderName + '/' + file.name;
-                        if(currentPath !== '') {
-                            uploadPath = currentPath + '/' + folderName + '/' + file.name;
-                        }
-                        
-                        uploadFd.append('relativePath', uploadPath);
-                        return fetch('action_upload.php', { method: 'POST', body: uploadFd });
-                    });
-
-                    await Promise.all(uploadPromises);
-                }
-
-                // Step C: Success!
-                closeModal();
-                loadDataAndRender();
-                alert("Saved successfully!");
-
-            } catch (err) {
-                console.error(err);
-                alert("An error occurred. Check console for details.");
-            }
-        });
-    }
-
-    // Initial Load
-    loadDataAndRender();
 });

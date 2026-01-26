@@ -1,26 +1,29 @@
 <?php
 session_start();
 
-// 1. Check if user is logged in
 if (!isset($_SESSION['user'])) {
     header("Location: login.php");
     exit;
 }
 
-// 2. Get the new title from the form
-$new_title = $_POST['app_title'] ?? 'My Workspace';
+$user = $_SESSION['user'];
+$safe_filename = preg_replace('/[^a-zA-Z0-9_-]/', '', $user);
+$config_file = 'data/config_' . $safe_filename . '.json';
 
-// 3. Prepare data
+$new_title = $_POST['app_title'] ?? 'My Workspace';
+$new_footer= $_POST['footer_text'] ?? '© 2026 Data Storage Online';
+$new_theme = $_POST['theme'] ?? 'light';
+$new_lang  = $_POST['lang'] ?? 'en';
+
 $config_data = [
-    'app_title' => $new_title
+    'app_title' => $new_title,
+    'footer_text' => $new_footer,
+    'theme' => $new_theme,
+    'lang' => $new_lang
 ];
 
-// 4. Create the 'data' folder if it doesn't exist
 if (!file_exists('data')) { mkdir('data'); }
+file_put_contents($config_file, json_encode($config_data, JSON_PRETTY_PRINT));
 
-// 5. Save the title to data/config.json
-file_put_contents('data/config.json', json_encode($config_data, JSON_PRETTY_PRINT));
-
-// 6. Go back to the main page
 header("Location: index.php?msg=Settings Saved");
 ?>
