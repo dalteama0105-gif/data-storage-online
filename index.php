@@ -69,6 +69,34 @@ $t = $translations[$lang];
         const CURRENT_USER_ROLE = "<?php echo $role; ?>";
         const CURRENT_USER_NAME = "<?php echo $user; ?>";
     </script>
+    <style>
+        /* === CRITICAL FIX FOR ICON LAYOUT === */
+        /* Forces the Action column to stay wide enough and never wrap */
+        th.col-actions, td.col-actions {
+            width: 160px;
+            min-width: 160px; /* Crucial: Prevents shrinking */
+            max-width: 160px;
+            white-space: nowrap; /* Forces icons to stay in one line */
+            text-align: left;
+        }
+        
+        /* Flex container for the icons */
+        .action-icon-group {
+            display: flex;
+            align-items: center;
+            gap: 12px; /* Consistent spacing */
+        }
+        
+        /* Fix Date Inputs in Toolbar */
+        .date-filter {
+            background: var(--input-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 5px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+    </style>
 </head>
 <body class="<?php echo ($theme === 'dark') ? 'dark-mode' : ''; ?>">
 
@@ -141,10 +169,17 @@ $t = $translations[$lang];
                     <button class="action-btn primary" id="btn-open-upload-modal">
                         <ion-icon name="add-circle-outline"></ion-icon> Import Folder
                     </button>
+                    
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="text" id="file-search" placeholder="<?php echo $t['search']; ?>" style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px;">
+                        <input type="date" id="date-start" class="date-filter" title="Start Date">
+                        <span style="color:var(--text-muted); font-size:13px;">to</span>
+                        <input type="date" id="date-end" class="date-filter" title="End Date">
+                        
+                        <input type="text" id="file-search" placeholder="<?php echo $t['search']; ?>" 
+                               style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--input-bg); color: var(--text-main);">
                     </div>
                 </div>
+                
                 <div class="file-workspace">
                     <div class="file-table-container">
                         <table class="file-table">
@@ -154,7 +189,7 @@ $t = $translations[$lang];
                                     <th><?php echo $t['col_name']; ?></th>
                                     <th><?php echo $t['col_date']; ?></th>
                                     <th><?php echo $t['col_type']; ?></th>
-                                    <th><?php echo $t['col_act']; ?></th>
+                                    <th class="col-actions"><?php echo $t['col_act']; ?></th>
                                 </tr>
                             </thead>
                             <tbody id="file-table-body"></tbody>
@@ -241,7 +276,6 @@ $t = $translations[$lang];
 
                 <?php if($role === 'Admin'): ?>
                 <div id="tab-users" class="tab-content" style="padding: 20px;">
-                    
                     <div style="background: var(--hover-bg); padding: 15px; border-radius: 6px; margin-bottom: 20px;">
                         <h4 style="margin-bottom:10px;">Register New User</h4>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -254,7 +288,6 @@ $t = $translations[$lang];
                         </div>
                         <button id="btn-add-user" class="btn-save" style="margin-top:10px; background:#10b981;">Add User</button>
                     </div>
-
                     <div style="max-height: 300px; overflow-y: auto;">
                         <table class="file-table">
                             <thead>
@@ -265,8 +298,7 @@ $t = $translations[$lang];
                                     <th>Action</th>
                                 </tr>
                             </thead>
-                            <tbody id="user-list-body">
-                                </tbody>
+                            <tbody id="user-list-body"></tbody>
                         </table>
                     </div>
                 </div>
@@ -284,19 +316,14 @@ $t = $translations[$lang];
             </div>
             <div class="modal-body" style="text-align: center;">
                 <ion-icon name="folder-open" style="font-size: 64px; color: #f59e0b; margin-bottom: 20px;"></ion-icon>
-                
                 <div class="info-row" style="margin-bottom: 15px; text-align: left; background: var(--bg-body); padding: 15px; border-radius: 8px;">
                     <strong style="display:block; color:var(--text-muted); font-size:12px;">Audio File:</strong>
                     <span id="info-audio-name" style="font-size:16px; font-weight:600;">Loading...</span>
                 </div>
-
                 <div class="info-row" style="margin-bottom: 20px; text-align: left; background: var(--bg-body); padding: 15px; border-radius: 8px;">
                     <strong style="display:block; color:var(--text-muted); font-size:12px;">Text File:</strong>
                     <span id="info-txt-name" style="font-size:16px; font-weight:600;">Loading...</span>
                 </div>
-
-                <div id="info-actions">
-                    </div>
             </div>
             <div class="modal-footer" style="justify-content: center;">
                 <button class="btn-modal btn-cancel" onclick="document.getElementById('folderInfoModal').classList.remove('active')">Back</button>

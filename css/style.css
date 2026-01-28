@@ -20,13 +20,13 @@
 
 /* === Dark Mode Variables === */
 body.dark-mode {
-    --bg-body: #111827;       /* Very dark grey/black */
-    --bg-card: #1f2937;       /* Dark grey for cards */
+    --bg-body: #111827;       
+    --bg-card: #1f2937;       
     --bg-sidebar: #1f2937;
     --bg-header: #1f2937;
-    --text-main: #f3f4f6;     /* White text */
-    --text-muted: #9ca3af;    /* Light grey text */
-    --border-color: #374151;  /* Dark borders */
+    --text-main: #f3f4f6;     
+    --text-muted: #9ca3af;    
+    --border-color: #374151;  
     --hover-bg: #374151;
     --table-header: #111827;
     --table-hover: #374151;
@@ -122,13 +122,53 @@ body {
 .action-btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
 .search-group input { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; outline: none; background: var(--input-bg); color: var(--text-main); }
 
-/* TABLE & FOLDERS */
-.file-workspace { display: flex; background: var(--bg-card); border-radius: 0 0 8px 8px; height: 500px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+/* === NEW: DATE FILTER STYLE === */
+.date-filter {
+    padding: 6px; 
+    border: 1px solid var(--border-color); 
+    border-radius: 4px; 
+    background: var(--input-bg); 
+    color: var(--text-main);
+    font-size: 13px;
+}
+
+/* === IMPORTANT TABLE FIX === */
+.file-workspace { display: flex; background: var(--bg-card); border-radius: 0 0 8px 8px; height: 545px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
 .file-table-container { flex: 1; padding: 0; overflow-y: auto; }
-.file-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.file-table th { background: var(--table-header); padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); color: var(--text-muted); position: sticky; top: 0; }
+
+.file-table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    font-size: 13px;
+    table-layout: fixed; /* This forces column widths to be respected */
+}
+
+.file-table th { background: var(--table-header); padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); color: var(--text-muted); position: sticky; top: 0; z-index: 5; }
 .file-table td { padding: 12px; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
 .file-table tr:hover { background: var(--table-hover); }
+
+/* Column 1: No */
+.file-table th:nth-child(1), .file-table td:nth-child(1) { width: 50px; text-align: center; }
+
+/* Column 2: Name (Prevent Overflow) */
+.file-table th:nth-child(2), .file-table td:nth-child(2) { 
+    width: 40%; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; /* Adds "..." if name is too long */
+}
+
+/* Column 3: Date */
+.file-table th:nth-child(3), .file-table td:nth-child(3) { width: 120px; }
+
+/* Column 4: Type */
+.file-table th:nth-child(4), .file-table td:nth-child(4) { width: 100px; text-align: center; }
+
+/* Column 5: Actions (Guaranteed Space) */
+.file-table th:nth-child(5), .file-table td:nth-child(5) { 
+    width: 180px; 
+    min-width: 180px;
+}
 
 .folder-list { list-style: none; }
 .folder-list li { padding: 8px 0; font-size: 13px; color: var(--text-main); display: flex; align-items: center; gap: 8px; cursor: pointer; }
@@ -145,187 +185,36 @@ body {
 
 /* FOOTER & ICONS */
 .bottom-footer { height: var(--footer-height); background: #000; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; }
-.icon-btn { cursor: pointer; font-size: 18px; margin-right: 12px; color: var(--text-muted); vertical-align: middle; }
-.icon-btn.delete:hover { color: red; }
-.icon-btn.download:hover { color: var(--primary); }
-.icon-btn.open:hover { color: #10b981; }
+.icon-btn { cursor: pointer; font-size: 18px; margin-right: 0; color: var(--text-muted); vertical-align: middle; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 4px; transition: 0.2s; }
+.icon-btn:hover { background: rgba(0,0,0,0.05); }
+.icon-btn.delete:hover { color: red; background: rgba(255,0,0,0.1); }
+.icon-btn.open:hover { color: #10b981; background: rgba(16, 185, 129, 0.1); }
 
-body.dark-mode select option {
-    background-color: var(--bg-card);
-    color: var(--text-main);
-}
+body.dark-mode select option { background-color: var(--bg-card); color: var(--text-main); }
+select { color: var(--text-main) !important; background-color: transparent; }
 
-select {
-    color: var(--text-main) !important;
-    background-color: transparent;
-}
-
-/* === NEW: MODAL / POPUP STYLES === */
-.modal-overlay {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-    z-index: 2000;
-    display: none;
-    justify-content: center;
-    align-items: center;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.modal-overlay.active {
-    display: flex;
-    opacity: 1;
-}
-
-.modal-card {
-    background: var(--bg-card);
-    width: 100%;
-    max-width: 500px;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    transform: translateY(20px);
-    transition: transform 0.3s ease;
-    border: 1px solid var(--border-color);
-    overflow: hidden;
-}
-
-.modal-overlay.active .modal-card {
-    transform: translateY(0);
-}
-
-.modal-header {
-    padding: 20px 25px;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: var(--table-header);
-}
-
-.modal-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text-main);
-}
-
-.btn-close-modal {
-    background: none;
-    border: none;
-    font-size: 24px;
-    color: var(--text-muted);
-    cursor: pointer;
-}
-
-.modal-body {
-    padding: 25px;
-}
-
-.modal-input-group {
-    margin-bottom: 20px;
-}
-
-.modal-input-group label {
-    display: block;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-main);
-    margin-bottom: 8px;
-}
-
-/* Styled File Input Container */
-.file-upload-box {
-    border: 2px dashed var(--border-color);
-    border-radius: 8px;
-    padding: 15px;
-    text-align: center;
-    cursor: pointer;
-    transition: 0.2s;
-    background: var(--input-bg);
-}
-
-.file-upload-box:hover {
-    border-color: var(--primary);
-    background: var(--hover-bg);
-}
-
-.file-upload-box p {
-    font-size: 13px;
-    color: var(--text-muted);
-    margin: 5px 0 0;
-}
-
-.modal-footer {
-    padding: 20px 25px;
-    border-top: 1px solid var(--border-color);
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    background: var(--table-header);
-}
-
-.btn-modal {
-    padding: 10px 20px;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 14px;
-}
-
-.btn-cancel {
-    background: transparent;
-    border: 1px solid var(--border-color);
-    color: var(--text-muted);
-}
+/* MODALS */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); z-index: 2000; display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s ease; }
+.modal-overlay.active { display: flex; opacity: 1; }
+.modal-card { background: var(--bg-card); width: 100%; max-width: 500px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); transform: translateY(20px); transition: transform 0.3s ease; border: 1px solid var(--border-color); overflow: hidden; }
+.modal-overlay.active .modal-card { transform: translateY(0); }
+.modal-header { padding: 20px 25px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--table-header); }
+.modal-title { font-size: 18px; font-weight: 700; color: var(--text-main); }
+.btn-close-modal { background: none; border: none; font-size: 24px; color: var(--text-muted); cursor: pointer; }
+.modal-body { padding: 25px; }
+.modal-input-group { margin-bottom: 20px; }
+.modal-input-group label { display: block; font-size: 14px; font-weight: 600; color: var(--text-main); margin-bottom: 8px; }
+.modal-footer { padding: 20px 25px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px; background: var(--table-header); }
+.btn-modal { padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; font-size: 14px; }
+.btn-cancel { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); }
 .btn-cancel:hover { background: var(--hover-bg); color: var(--text-main); }
-
-.btn-confirm {
-    background: var(--primary);
-    color: white;
-}
+.btn-confirm { background: var(--primary); color: white; }
 .btn-confirm:hover { background: #1d4ed8; }
 
-/* ... Existing styles ... */
-
-/* SETTINGS TABS */
-.settings-tabs {
-    display: flex;
-    border-bottom: 1px solid var(--border-color);
-    background: var(--table-header);
-}
-
-.tab-item {
-    padding: 15px 25px;
-    cursor: pointer;
-    font-weight: 600;
-    color: var(--text-muted);
-    border-bottom: 3px solid transparent;
-    transition: 0.2s;
-}
-
-.tab-item:hover {
-    color: var(--primary);
-    background: var(--hover-bg);
-}
-
-.tab-item.active {
-    color: var(--primary);
-    border-bottom-color: var(--primary);
-    background: var(--bg-card);
-}
-
-.tab-content {
-    display: none;
-}
-
-.tab-content.active {
-    display: block;
-    animation: fadeIn 0.3s;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
+.settings-tabs { display: flex; border-bottom: 1px solid var(--border-color); background: var(--table-header); }
+.tab-item { padding: 15px 25px; cursor: pointer; font-weight: 600; color: var(--text-muted); border-bottom: 3px solid transparent; transition: 0.2s; }
+.tab-item:hover { color: var(--primary); background: var(--hover-bg); }
+.tab-item.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--bg-card); }
+.tab-content { display: none; }
+.tab-content.active { display: block; animation: fadeIn 0.3s; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
