@@ -72,4 +72,33 @@ if ($action === 'reset') {
     }
     exit;
 }
+
+// === NEW DELETE ACTION ===
+if ($action === 'delete') {
+    $target = $_POST['username'] ?? '';
+    $new_users = [];
+    $found = false;
+
+    // Prevent deleting yourself
+    if ($target === $_SESSION['user']) {
+        echo json_encode(['success' => false, 'message' => 'You cannot delete your own account']);
+        exit;
+    }
+
+    foreach ($users as $u) {
+        if ($u['username'] === $target) {
+            $found = true;
+            continue; // Skip this user (delete)
+        }
+        $new_users[] = $u;
+    }
+
+    if ($found) {
+        file_put_contents($file, json_encode($new_users, JSON_PRETTY_PRINT));
+        echo json_encode(['success' => true, 'message' => 'User deleted successfully']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'User not found']);
+    }
+    exit;
+}
 ?>

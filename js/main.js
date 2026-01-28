@@ -52,6 +52,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // --- NEW: Change Password Modal Logic ---
+    const btnOpenPassword = document.getElementById('btn-open-password-modal');
+    const passwordModal = document.getElementById('passwordModal');
+
+    if(btnOpenPassword) {
+        btnOpenPassword.addEventListener('click', (e) => {
+            e.preventDefault();
+            passwordModal.classList.add('active');
+        });
+    }
+
     // --- File Logic ---
     const tableBody = document.getElementById('file-table-body');
     const statTotal = document.getElementById('stat-total');
@@ -135,7 +146,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 downloadAction = `downloadSingleFile('${file.relativePath}', '${file.name}')`;
             }
 
-            // === FIXED: Uses CSS class 'action-icon-group' for perfect alignment ===
             const actionsHTML = `
                 <div class="action-icon-group">
                     <span class="icon-btn open" title="Download" onclick="${downloadAction}">
@@ -150,7 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
 
-            // Note the class="col-actions" on the last TD
             tr.innerHTML = `
                 <td>${index + 1}</td>
                 <td ${nameAction}><ion-icon name="${iconName}" style="vertical-align:bottom; margin-right:5px;"></ion-icon> ${file.name}</td>
@@ -193,7 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.downloadSingleFile = function(relativePath, fileName) {
-        // Construct link for direct download
         const link = document.createElement('a');
         link.href = `uploads/${CURRENT_USER_NAME}/${relativePath}`;
         link.download = fileName; 
@@ -228,10 +236,40 @@ document.addEventListener('DOMContentLoaded', () => {
             tbody.innerHTML = '';
             users.forEach(u => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${u.name||'-'}</td><td>${u.department||'-'}</td><td>${u.username}</td><td><button onclick="resetUser('${u.username}')">Reset</button></td>`;
+                // Added Delete Button
+                tr.innerHTML = `
+                    <td>${u.name||'-'}</td>
+                    <td>${u.department||'-'}</td>
+                    <td>${u.username}</td>
+                    <td>
+                        <button onclick="resetUser('${u.username}')" 
+                                style="background: #f59e0b; color: white; border:none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-right: 6px; font-weight: 500; transition: background 0.2s;">
+                            Reset
+                        </button>
+                        <button onclick="deleteUser('${u.username}')" 
+                                style="background: #dc2626; color: white; border:none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: 500; transition: background 0.2s;">
+                            Delete
+                        </button>
+                    </td>`;
                 tbody.appendChild(tr);
             });
         });
+    };
+
+    // === NEW DELETE USER FUNCTION ===
+    window.deleteUser = function(u) {
+        if(!confirm(`Are you sure you want to DELETE user: ${u}? This action cannot be undone.`)) return;
+        
+        const fd = new FormData(); 
+        fd.append('action', 'delete'); 
+        fd.append('username', u);
+        
+        fetch('action_admin_users.php', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(r => {
+                alert(r.message);
+                if (r.success) loadUsers(); // Refresh list
+            });
     };
 
     const btnAddUser = document.getElementById('btn-add-user');
@@ -293,7 +331,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 await fetch('action_upload.php', { method:'POST', body:uFd });
             }
 
-            // === FIX: Clear inputs ===
             folderInput.value = '';
             audioInput.value = '';
             txtInput.value = '';

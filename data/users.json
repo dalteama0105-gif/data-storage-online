@@ -5,7 +5,7 @@
     },
     {
         "username": "Darren",
-        "password_hash": "$2y$10$UwC4poXb0H6mKgnymXFMdOCKHF4FzdopfhwslzHMO\/302h0\/V7y9C"
+        "password_hash": "$2y$10$wlKvkCOq9HgIpIYMUBB4c.A9x\/63rz1P\/iRgUjo8MCYNU5Im.1K.K"
     },
     {
         "username": "alex",
@@ -18,5 +18,17 @@
     {
         "username": "qwert",
         "password_hash": "$2y$10$dyy1NBdZvJTlDVyH58tVFe36aEuVt6BUX4lGEvSl.GVYs\/7gxbQVO"
+    },
+    {
+        "username": "Ali",
+        "password_hash": "$2y$10$NwRxLYLM4DIs.sMF8egmb.MX4acAL3kViBBiJcqQl1B71CiaMEsPW",
+        "name": "Ali",
+        "email": "ali@gmail.com",
+        "phone": "0123456789",
+        "department": "IT"
+    },
+    {
+        "username": "admin_darren",
+        "password_hash": "$2y$10$nSBCqPjj\/jdtYgJSg2BWoOaat72bbtBBLtj1qAq4XuiyOwQAVkJoe"
     }
 ]

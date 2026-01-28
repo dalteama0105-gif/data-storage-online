@@ -71,23 +71,20 @@ $t = $translations[$lang];
     </script>
     <style>
         /* === CRITICAL FIX FOR ICON LAYOUT === */
-        /* Forces the Action column to stay wide enough and never wrap */
         th.col-actions, td.col-actions {
             width: 160px;
-            min-width: 160px; /* Crucial: Prevents shrinking */
+            min-width: 160px;
             max-width: 160px;
-            white-space: nowrap; /* Forces icons to stay in one line */
+            white-space: nowrap;
             text-align: left;
         }
         
-        /* Flex container for the icons */
         .action-icon-group {
             display: flex;
             align-items: center;
-            gap: 12px; /* Consistent spacing */
+            gap: 12px;
         }
         
-        /* Fix Date Inputs in Toolbar */
         .date-filter {
             background: var(--input-bg);
             color: var(--text-main);
@@ -144,7 +141,6 @@ $t = $translations[$lang];
 
         <main class="main-content">
             <div id="view-dashboard" class="content-view">
-                <h2 class="view-title"><?php echo $t['welcome']; ?>, <?php echo htmlspecialchars($user); ?>!</h2>
                 <div class="stats-container">
                     <div class="stat-card">
                         <h3><?php echo $t['tot_files']; ?></h3>
@@ -272,6 +268,10 @@ $t = $translations[$lang];
                         </div>
                         <button type="submit" class="btn-save">Save General Settings</button>
                     </form>
+
+                    <hr style="margin: 30px 0; border: 0; border-top: 1px solid var(--border-color);">
+                    <h4 style="margin-bottom: 15px; color: var(--text-main);">Security</h4>
+                    <button type="button" id="btn-open-password-modal" class="btn-save" style="background: #10b981;">Change Password</button>
                 </div>
 
                 <?php if($role === 'Admin'): ?>
@@ -328,6 +328,35 @@ $t = $translations[$lang];
             <div class="modal-footer" style="justify-content: center;">
                 <button class="btn-modal btn-cancel" onclick="document.getElementById('folderInfoModal').classList.remove('active')">Back</button>
             </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="passwordModal" style="z-index: 2100;"> 
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">Change Password</div>
+                <button class="btn-close-modal" onclick="document.getElementById('passwordModal').classList.remove('active')"><ion-icon name="close-outline"></ion-icon></button>
+            </div>
+            <form action="action_change_password.php" method="post">
+                <div class="modal-body">
+                    <div class="modal-input-group">
+                        <label>Current Password</label>
+                        <input type="password" name="current_password" required class="settings-input">
+                    </div>
+                    <div class="modal-input-group">
+                        <label>New Password</label>
+                        <input type="password" name="new_password" required class="settings-input">
+                    </div>
+                    <div class="modal-input-group">
+                        <label>Confirm New Password</label>
+                        <input type="password" name="confirm_password" required class="settings-input">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-modal btn-cancel" onclick="document.getElementById('passwordModal').classList.remove('active')">Cancel</button>
+                    <button type="submit" class="btn-modal btn-confirm" style="background: #10b981;">Update</button>
+                </div>
+            </form>
         </div>
     </div>
 

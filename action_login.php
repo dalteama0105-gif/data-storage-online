@@ -17,7 +17,7 @@ foreach ($users as $user) {
             $_SESSION['user'] = $u;
             // === NEW: Simple Role Logic ===
             // If username is 'admin', they are the Boss. Everyone else is an Employee.
-            $_SESSION['role'] = ($u === 'admin') ? 'Admin' : 'Employee';
+            $_SESSION['role'] = ($u === 'admin') ? 'Admin' : 'User';
             
             header("Location: index.php");
             exit();
