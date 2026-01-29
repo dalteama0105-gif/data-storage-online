@@ -1,16 +1,17 @@
 <?php
+// action_admin_users.php
 session_start();
 header('Content-Type: application/json');
 
-// Only Admin can access
-if (!isset($_SESSION['user']) || ($_SESSION['role'] ?? '') !== 'Admin') {
+// Updated: Both Admin and Developer can access these actions
+$allowed_roles = ['Admin', 'Developer'];
+if (!isset($_SESSION['user']) || !in_array($_SESSION['role'] ?? '', $allowed_roles)) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;
 }
 
 $file = 'data/users.json';
 $users = file_exists($file) ? json_decode(file_get_contents($file), true) : [];
-
 $action = $_REQUEST['action'] ?? '';
 
 if ($action === 'list') {
@@ -27,8 +28,8 @@ if ($action === 'list') {
 if ($action === 'add') {
     $u = $_POST['username'] ?? '';
     $p = $_POST['password'] ?? '';
-    
-    // Check duplicates
+    $role = $_POST['role'] ?? 'User'; // Get the role from POST
+
     foreach ($users as $existing) {
         if ($existing['username'] === $u) {
             echo json_encode(['success' => false, 'message' => 'Username exists']);
@@ -42,7 +43,8 @@ if ($action === 'add') {
         'name' => $_POST['name'] ?? '',
         'email' => $_POST['email'] ?? '',
         'phone' => $_POST['phone'] ?? '',
-        'department' => $_POST['department'] ?? ''
+        'department' => $_POST['department'] ?? '',
+        'role' => $role // Save the role in the JSON
     ];
 
     $users[] = $newUser;

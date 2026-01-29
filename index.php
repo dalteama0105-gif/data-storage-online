@@ -285,23 +285,15 @@ $t = $translations[$lang];
                             <input type="text" id="new_u_dept" placeholder="Department" class="settings-input">
                             <input type="text" id="new_u_username" placeholder="Username (Login ID)" class="settings-input">
                             <input type="password" id="new_u_pass" placeholder="Password" class="settings-input">
+                            <select id="new_u_role" class="settings-input" style="grid-column: span 2;">
+                                <option value="User">User</option>
+                                <option value="Developer">Developer</option>
+                                <option value="Admin">Admin</option>
+                            </select>
                         </div>
                         <button id="btn-add-user" class="btn-save" style="margin-top:10px; background:#10b981;">Add User</button>
                     </div>
-                    <div style="max-height: 300px; overflow-y: auto;">
-                        <table class="file-table">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Dept</th>
-                                    <th>Username</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="user-list-body"></tbody>
-                        </table>
                     </div>
-                </div>
                 <?php endif; ?>
 
             </div>
@@ -309,27 +301,48 @@ $t = $translations[$lang];
     </div>
 
     <div class="modal-overlay" id="folderInfoModal">
-        <div class="modal-card">
-            <div class="modal-header">
-                <div class="modal-title" id="info-folder-name">Folder Details</div>
-                <button class="btn-close-modal" onclick="document.getElementById('folderInfoModal').classList.remove('active')"><ion-icon name="close-outline"></ion-icon></button>
+    <div class="modal-card">
+        <div class="modal-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <ion-icon name="folder" style="font-size: 24px; color: #1f2937;"></ion-icon>
             </div>
-            <div class="modal-body" style="text-align: center;">
-                <ion-icon name="folder-open" style="font-size: 64px; color: #f59e0b; margin-bottom: 20px;"></ion-icon>
-                <div class="info-row" style="margin-bottom: 15px; text-align: left; background: var(--bg-body); padding: 15px; border-radius: 8px;">
-                    <strong style="display:block; color:var(--text-muted); font-size:12px;">Audio File:</strong>
-                    <span id="info-audio-name" style="font-size:16px; font-weight:600;">Loading...</span>
+            <button class="btn-close-modal" onclick="document.getElementById('folderInfoModal').classList.remove('active')">
+                <ion-icon name="close-outline"></ion-icon>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                <div style="flex: 1; background: var(--bg-body); padding: 15px; border-radius: 8px;">
+                    <span style="color:var(--text-muted); font-size:12px; display:block; margin-bottom:5px;">Folder name:</span>
+                    <span id="info-folder-name" style="font-size:16px; font-weight:600;">-</span>
                 </div>
-                <div class="info-row" style="margin-bottom: 20px; text-align: left; background: var(--bg-body); padding: 15px; border-radius: 8px;">
-                    <strong style="display:block; color:var(--text-muted); font-size:12px;">Text File:</strong>
-                    <span id="info-txt-name" style="font-size:16px; font-weight:600;">Loading...</span>
+                <div style="flex: 1; background: var(--bg-body); padding: 15px; border-radius: 8px; display: flex; justify-content: center; align-items: center; gap: 20px;">
+                    <div id="modal-folder-download" style="text-align: center; cursor: pointer;">
+                        <ion-icon name="cloud-download-outline" style="font-size: 24px; color: var(--text-muted);"></ion-icon>
+                        <div style="font-size: 11px; color: var(--text-main);">Download</div>
+                    </div>
+                    <div id="modal-folder-rename" style="text-align: center; cursor: pointer;">
+                        <ion-icon name="create-outline" style="font-size: 24px; color: #f59e0b;"></ion-icon>
+                        <div style="font-size: 11px; color: var(--text-main);">Rename</div>
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer" style="justify-content: center;">
-                <button class="btn-modal btn-cancel" onclick="document.getElementById('folderInfoModal').classList.remove('active')">Back</button>
+
+            <div style="background: var(--bg-body); padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: left;">
+                <strong style="display:block; color:var(--text-muted); font-size:12px; margin-bottom:5px;">Audio File:</strong>
+                <span id="info-audio-name" style="font-size:16px; font-weight:600;">Scanning...</span>
+            </div>
+
+            <div style="background: var(--bg-body); padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left;">
+                <strong style="display:block; color:var(--text-muted); font-size:12px; margin-bottom:5px;">Text File:</strong>
+                <span id="info-txt-name" style="font-size:16px; font-weight:600;">Scanning...</span>
             </div>
         </div>
+        <div class="modal-footer" style="justify-content: center; background: white; border-top: none;">
+            <button class="btn-modal btn-cancel" style="background: white; padding: 8px 30px;" onclick="document.getElementById('folderInfoModal').classList.remove('active')">Back</button>
+        </div>
     </div>
+</div>
 
     <div class="modal-overlay" id="passwordModal" style="z-index: 2100;"> 
         <div class="modal-card">

@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- NEW: Change Password Modal Logic ---
+    // --- Change Password Modal Logic ---
     const btnOpenPassword = document.getElementById('btn-open-password-modal');
     const passwordModal = document.getElementById('passwordModal');
 
@@ -101,75 +101,68 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderTable() {
-        if(!tableBody) return;
-        tableBody.innerHTML = '';
-        const searchVal = searchInput ? searchInput.value.toLowerCase().trim() : '';
-        const startVal = dateStartInput ? dateStartInput.value : '';
-        const endVal = dateEndInput ? dateEndInput.value : '';
+    if(!tableBody) return;
+    tableBody.innerHTML = '';
+    const searchVal = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    const startVal = dateStartInput ? dateStartInput.value : '';
+    const endVal = dateEndInput ? dateEndInput.value : '';
 
-        const filesToShow = allFiles.filter(file => {
-            // 1. Search
-            if (searchVal !== '' && !file.name.toLowerCase().includes(searchVal)) return false;
-            
-            // 2. Date Filter
-            if (startVal || endVal) {
-                const fileDate = file.date.substring(0, 10);
-                if (startVal && fileDate < startVal) return false;
-                if (endVal && fileDate > endVal) return false;
-            }
-            return true;
-        });
+    const filesToShow = allFiles.filter(file => {
+        // 1. Search Filter
+        if (searchVal !== '' && !file.name.toLowerCase().includes(searchVal)) return false;
+        
+        // 2. Date Filter
+        if (startVal || endVal) {
+            const fileDate = file.date.substring(0, 10);
+            if (startVal && fileDate < startVal) return false;
+            if (endVal && fileDate > endVal) return false;
+        }
+        return true;
+    });
 
-        if (currentPath !== '') {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td></td><td colspan="4"><a href="#" onclick="goUpFolder()" style="font-weight:bold; color:#333; text-decoration:none;">... (Go Back)</a></td>`;
-            tableBody.appendChild(tr);
+    // Add "Go Back" row if in a subfolder
+    if (currentPath !== '') {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td></td><td colspan="4"><a href="#" onclick="goUpFolder()" style="font-weight:bold; color:#333; text-decoration:none;">... (Go Back)</a></td>`;
+        tableBody.appendChild(tr);
+    }
+
+    filesToShow.forEach((file, index) => {
+        const tr = document.createElement('tr');
+        let typeLabel = 'FILE';
+        let iconName = 'document-outline';
+        let nameAction = '';
+
+        // Determine icon and click behavior based on type
+        if (file.type === 'folder') {
+            typeLabel = 'FOLDER';
+            iconName = 'folder-open';
+            nameAction = `onclick="showFolderPopup('${file.name}', '${file.relativePath}')" style="cursor:pointer; color:#2563eb; font-weight:bold;"`;
+        } else {
+            if(file.name.endsWith('.mp3')) typeLabel = 'MP3';
+            if(file.name.endsWith('.txt')) typeLabel = 'TXT';
+            nameAction = `onclick="window.open('view_file.php?f=' + encodeURIComponent('${file.relativePath}'), '_blank')" style="cursor:pointer;"`;
         }
 
-        filesToShow.forEach((file, index) => {
-            const tr = document.createElement('tr');
-            let typeLabel = 'FILE';
-            let iconName = 'document-outline';
-            let nameAction = '';
-            let downloadAction = '';
+        // Updated Actions: Removed download and rename icons
+        const actionsHTML = `
+            <div class="action-icon-group">
+                <span class="icon-btn delete" title="Delete" onclick="deleteFile('${file.relativePath}')">
+                    <ion-icon name="trash-outline"></ion-icon>
+                </span>
+            </div>
+        `;
 
-            if (file.type === 'folder') {
-                typeLabel = 'FOLDER';
-                iconName = 'folder-open';
-                nameAction = `onclick="showFolderPopup('${file.name}', '${file.relativePath}')" style="cursor:pointer; color:#2563eb; font-weight:bold;"`;
-                downloadAction = `window.location.href='action_download_folder.php?folder=${encodeURIComponent(file.relativePath)}'`;
-            } else {
-                if(file.name.endsWith('.mp3')) typeLabel = 'MP3';
-                if(file.name.endsWith('.txt')) typeLabel = 'TXT';
-                nameAction = `onclick="window.open('view_file.php?f=' + encodeURIComponent('${file.relativePath}'), '_blank')" style="cursor:pointer;"`;
-                // Download helper using the raw file path
-                downloadAction = `downloadSingleFile('${file.relativePath}', '${file.name}')`;
-            }
-
-            const actionsHTML = `
-                <div class="action-icon-group">
-                    <span class="icon-btn open" title="Download" onclick="${downloadAction}">
-                        <ion-icon name="cloud-download-outline"></ion-icon>
-                    </span>
-                    <span class="icon-btn" title="Rename" onclick="renameFile('${file.name}', '${file.type}')" style="color:#f59e0b;">
-                        <ion-icon name="create-outline"></ion-icon>
-                    </span>
-                    <span class="icon-btn delete" title="Delete" onclick="deleteFile('${file.relativePath}')">
-                        <ion-icon name="trash-outline"></ion-icon>
-                    </span>
-                </div>
-            `;
-
-            tr.innerHTML = `
-                <td>${index + 1}</td>
-                <td ${nameAction}><ion-icon name="${iconName}" style="vertical-align:bottom; margin-right:5px;"></ion-icon> ${file.name}</td>
-                <td>${file.date ? file.date.substring(0,10) : '-'}</td>
-                <td><span class="badge">${typeLabel}</span></td>
-                <td class="col-actions">${actionsHTML}</td>
-            `;
-            tableBody.appendChild(tr);
-        });
-    }
+        tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td ${nameAction}><ion-icon name="${iconName}" style="vertical-align:bottom; margin-right:5px;"></ion-icon> ${file.name}</td>
+            <td>${file.date ? file.date.substring(0,10) : '-'}</td>
+            <td><span class="badge">${typeLabel}</span></td>
+            <td class="col-actions">${actionsHTML}</td>
+        `;
+        tableBody.appendChild(tr);
+    });
+}
 
     // --- Helpers ---
     window.goUpFolder = function() {
@@ -210,20 +203,40 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.removeChild(link);
     };
 
+    // --- Updated Folder Info Popup Logic ---
     window.showFolderPopup = function(folderName, relPath) {
         const modal = document.getElementById('folderInfoModal');
+        
+        // 1. Reset text content and show modal
         document.getElementById('info-folder-name').textContent = folderName;
         document.getElementById('info-audio-name').textContent = 'Scanning...';
         document.getElementById('info-txt-name').textContent = 'Scanning...';
         modal.classList.add('active');
 
+        // 2. Attach click events to the new popup action icons
+        document.getElementById('modal-folder-download').onclick = () => {
+            window.location.href = 'action_download_folder.php?folder=' + encodeURIComponent(relPath);
+        };
+
+        document.getElementById('modal-folder-rename').onclick = () => {
+            modal.classList.remove('active');
+            renameFile(folderName, 'folder');
+        };
+
+        // 3. Fetch folder contents to update file details
         fetch('action_list_files.php?dir=' + encodeURIComponent(relPath))
             .then(res => res.json())
             .then(files => {
                 const mp3 = files.find(f => f.name.endsWith('.mp3'));
                 const txt = files.find(f => f.name.endsWith('.txt'));
+                
                 document.getElementById('info-audio-name').textContent = mp3 ? mp3.name : 'No Audio';
                 document.getElementById('info-txt-name').textContent = txt ? txt.name : 'No Text';
+            })
+            .catch(err => {
+                console.error("Error fetching folder details:", err);
+                document.getElementById('info-audio-name').textContent = 'Error loading';
+                document.getElementById('info-txt-name').textContent = 'Error loading';
             });
     };
 
@@ -236,7 +249,6 @@ document.addEventListener('DOMContentLoaded', () => {
             tbody.innerHTML = '';
             users.forEach(u => {
                 const tr = document.createElement('tr');
-                // Added Delete Button
                 tr.innerHTML = `
                     <td>${u.name||'-'}</td>
                     <td>${u.department||'-'}</td>
@@ -256,19 +268,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // === NEW DELETE USER FUNCTION ===
     window.deleteUser = function(u) {
         if(!confirm(`Are you sure you want to DELETE user: ${u}? This action cannot be undone.`)) return;
-        
         const fd = new FormData(); 
         fd.append('action', 'delete'); 
         fd.append('username', u);
-        
         fetch('action_admin_users.php', { method: 'POST', body: fd })
             .then(r => r.json())
             .then(r => {
                 alert(r.message);
-                if (r.success) loadUsers(); // Refresh list
+                if (r.success) loadUsers();
             });
     };
 

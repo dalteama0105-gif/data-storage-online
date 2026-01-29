@@ -25,5 +25,18 @@ foreach ($users as $user) {
     }
 }
 
+// action_login.php update snippet
+foreach ($users as $user) {
+    if ($user['username'] === $u) {
+        if (password_verify($p, $user['password_hash'])) {
+            $_SESSION['user'] = $u;
+            // Use the role saved in the database, or default based on username
+            $_SESSION['role'] = $user['role'] ?? (($u === 'admin') ? 'Admin' : 'User');
+            header("Location: index.php");
+            exit();
+        }
+    }
+}
+
 header("Location: login.php?error=Invalid Username or Password");
 ?>
