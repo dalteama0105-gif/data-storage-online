@@ -35,7 +35,11 @@ document.addEventListener('DOMContentLoaded', () => {
     navSettingsBtn.addEventListener('click', (e) => {
         e.preventDefault();
         settingsModal.classList.add('active');
-        if(typeof CURRENT_USER_ROLE !== 'undefined' && CURRENT_USER_ROLE === 'Admin') loadUsers();
+        
+        // UPDATED: Load users if Admin OR Developer
+        if(typeof CURRENT_USER_ROLE !== 'undefined' && (CURRENT_USER_ROLE === 'Admin' || CURRENT_USER_ROLE === 'Developer')) {
+            loadUsers();
+        }
     });
 
     document.getElementById('btn-close-settings').addEventListener('click', () => {
@@ -291,6 +295,9 @@ document.addEventListener('DOMContentLoaded', () => {
             fd.append('action', 'add');
             fd.append('name', inputs[0]); fd.append('email', inputs[1]); fd.append('phone', inputs[2]);
             fd.append('department', inputs[3]); fd.append('username', inputs[4]); fd.append('password', inputs[5]);
+            // Add Role
+            const roleSelect = document.getElementById('new_u_role');
+            if(roleSelect) fd.append('role', roleSelect.value);
 
             fetch('action_admin_users.php', { method: 'POST', body: fd }).then(r => r.json()).then(res => {
                 if(res.success) { alert("User Added!"); loadUsers(); } 

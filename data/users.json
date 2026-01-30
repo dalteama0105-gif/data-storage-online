@@ -18,5 +18,14 @@
         "email": "",
         "phone": "",
         "department": ""
+    },
+    {
+        "username": "dev",
+        "password_hash": "$2y$10$oTdyWZ.6pVhRt7aSD7RX4OQvgSrhWGnAwRP8KvdtmFlSIMY1zC4sK",
+        "name": "dev",
+        "email": "",
+        "phone": "",
+        "department": "",
+        "role": "Developer"
     }
 ]

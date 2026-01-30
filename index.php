@@ -237,7 +237,8 @@ $t = $translations[$lang];
                 
                 <div class="settings-tabs">
                     <div class="tab-item active" data-tab="gen">General</div>
-                    <?php if($role === 'Admin'): ?>
+                    
+                    <?php if($role === 'Admin' || $role === 'Developer'): ?>
                     <div class="tab-item" data-tab="users">User Management</div>
                     <?php endif; ?>
                 </div>
@@ -274,7 +275,7 @@ $t = $translations[$lang];
                     <button type="button" id="btn-open-password-modal" class="btn-save" style="background: #10b981;">Change Password</button>
                 </div>
 
-                <?php if($role === 'Admin'): ?>
+                <?php if($role === 'Admin' || $role === 'Developer'): ?>
                 <div id="tab-users" class="tab-content" style="padding: 20px;">
                     <div style="background: var(--hover-bg); padding: 15px; border-radius: 6px; margin-bottom: 20px;">
                         <h4 style="margin-bottom:10px;">Register New User</h4>
@@ -293,7 +294,21 @@ $t = $translations[$lang];
                         </div>
                         <button id="btn-add-user" class="btn-save" style="margin-top:10px; background:#10b981;">Add User</button>
                     </div>
-                    </div>
+
+                    <h4 style="margin-bottom:10px;">Existing Users</h4>
+                    <table class="file-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Department</th>
+                                <th>Username</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="user-list-body">
+                            </tbody>
+                    </table>
+                </div>
                 <?php endif; ?>
 
             </div>
