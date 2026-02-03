@@ -140,9 +140,6 @@
                 <input type="password" name="password" required>
             </div>
             <button type="submit" class="btn-submit">Login</button>
-            <div style="margin-top: 15px; font-size: 14px;">
-                No account? <a href="register.php" style="color: #2563eb; font-weight: bold;">Sign Up Here</a>
-            </div>
         </form>
         
         <a href="index.php" class="back-link">← Back to Dashboard</a>
