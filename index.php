@@ -3,25 +3,23 @@ session_start();
 if (!isset($_SESSION['user'])) { header("Location: login.php"); exit(); }
 
 $user = $_SESSION['user'];
-$role = $_SESSION['role'] ?? 'User'; // 'Admin' or 'Employee'
+$role = $_SESSION['role'] ?? 'User'; 
 
-// Unique config file for user
 $safe_filename = preg_replace('/[^a-zA-Z0-9_-]/', '', $user);
 $user_config_file = 'data/config_' . $safe_filename . '.json';
 
-// === 1. LOAD CONFIG ===
+// === LOAD CONFIG ===
 $config = [];
 if (file_exists($user_config_file)) {
     $config = json_decode(file_get_contents($user_config_file), true);
 }
 
-// Default values
 $app_title = $config['app_title'] ?? "My Workspace";
 $footer_txt= $config['footer_text'] ?? "© 2026 Data Storage Online. All rights reserved.";
 $theme     = $config['theme'] ?? 'light'; 
 $lang      = $config['lang'] ?? 'en';     
 
-// === 2. TRANSLATION DICTIONARY ===
+// === TRANSLATIONS ===
 $translations = [
     'en' => [
         'dashboard' => 'Dashboard',
@@ -70,7 +68,7 @@ $t = $translations[$lang];
         const CURRENT_USER_NAME = "<?php echo $user; ?>";
     </script>
     <style>
-        /* === CRITICAL FIX FOR ICON LAYOUT === */
+        /* === ICON LAYOUT FIX === */
         th.col-actions, td.col-actions {
             width: 160px;
             min-width: 160px;
@@ -79,20 +77,33 @@ $t = $translations[$lang];
             text-align: left;
         }
         
-        .action-icon-group {
-            display: flex;
-            align-items: center;
-            gap: 12px;
+        .action-icon-group { display: flex; align-items: center; gap: 12px; }
+        .date-filter { background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 5px; border-radius: 4px; font-size: 13px; }
+
+        /* === SETTINGS PAGE CONTAINER === */
+        .settings-page-wrapper {
+            background: var(--bg-card);
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            overflow: hidden;
+            width: 100%;       
+            max-width: 100%;   
+            min-height: 75vh;  
         }
-        
-        .date-filter {
-            background: var(--input-bg);
-            color: var(--text-main);
-            border: 1px solid var(--border-color);
-            padding: 5px;
-            border-radius: 4px;
-            font-size: 13px;
-        }
+
+        /* === TABLE COLUMN SIZES FOR CHECKBOX === */
+        /* Col 1: Checkbox */
+        .file-table th:nth-child(1), .file-table td:nth-child(1) { width: 40px; text-align: center; }
+        /* Col 2: No */
+        .file-table th:nth-child(2), .file-table td:nth-child(2) { width: 50px; text-align: center; }
+        /* Col 3: Name */
+        .file-table th:nth-child(3), .file-table td:nth-child(3) { width: 35%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* Col 4: Date */
+        .file-table th:nth-child(4), .file-table td:nth-child(4) { width: 120px; }
+        /* Col 5: Type */
+        .file-table th:nth-child(5), .file-table td:nth-child(5) { width: 80px; text-align: center; }
+        /* Col 6: Actions */
+        .file-table th:nth-child(6), .file-table td:nth-child(6) { width: 180px; min-width: 180px; }
     </style>
 </head>
 <body class="<?php echo ($theme === 'dark') ? 'dark-mode' : ''; ?>">
@@ -130,7 +141,7 @@ $t = $translations[$lang];
             </div>
 
             <div class="sidebar-bottom">
-                <a href="#" class="nav-item" id="nav-settings-btn">
+                <a href="#" class="nav-item" id="nav-settings">
                     <ion-icon name="settings-outline"></ion-icon> <?php echo $t['settings']; ?>
                 </a>
                 <a href="action_logout.php" class="nav-item logout">
@@ -165,8 +176,16 @@ $t = $translations[$lang];
                     <button class="action-btn primary" id="btn-open-upload-modal">
                         <ion-icon name="add-circle-outline"></ion-icon> Import Folder
                     </button>
+
+                    <button class="action-btn" id="btn-bulk-delete" style="display: none; background: #dc2626; color: white; border-color: #dc2626; margin-left: 10px;">
+                        <ion-icon name="trash-outline"></ion-icon> Delete Selected
+                    </button>
                     
-                    <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="action-btn" id="btn-bulk-download" style="display: none; background: #10b981; color: white; border-color: #10b981; margin-left: 10px;">
+                        <ion-icon name="cloud-download-outline"></ion-icon> Download Selected
+                    </button>
+                    
+                    <div style="display: flex; gap: 10px; align-items: center; margin-left: auto;">
                         <input type="date" id="date-start" class="date-filter" title="Start Date">
                         <span style="color:var(--text-muted); font-size:13px;">to</span>
                         <input type="date" id="date-end" class="date-filter" title="End Date">
@@ -181,7 +200,8 @@ $t = $translations[$lang];
                         <table class="file-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 50px;">No</th>
+                                    <th><input type="checkbox" id="select-all-files"></th>
+                                    <th>No</th>
                                     <th><?php echo $t['col_name']; ?></th>
                                     <th><?php echo $t['col_date']; ?></th>
                                     <th><?php echo $t['col_type']; ?></th>
@@ -191,6 +211,104 @@ $t = $translations[$lang];
                             <tbody id="file-table-body"></tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+
+            <div id="view-settings" class="content-view" style="display: none;">
+                <h2 class="view-title" style="margin-bottom: 20px;"><?php echo $t['settings']; ?></h2>
+                
+                <div class="settings-page-wrapper">
+                    <div class="settings-tabs">
+                        <div class="tab-item active" data-tab="gen">General</div>
+                        <?php if($role === 'Admin' || $role === 'Developer'): ?>
+                        <div class="tab-item" data-tab="users">User Management</div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div id="tab-gen" class="tab-content active" style="padding: 30px;">
+                        <form id="gen-settings-form" action="action_save_settings.php" method="post">
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 20px;">
+                                
+                                <div>
+                                    <div class="form-group">
+                                        <label>Header Title</label>
+                                        <input type="text" name="app_title" value="<?php echo htmlspecialchars($app_title); ?>" class="settings-input">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Footer Text</label>
+                                        <input type="text" name="footer_text" value="<?php echo htmlspecialchars($footer_txt); ?>" class="settings-input">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="form-group">
+                                        <label>Theme</label>
+                                        <select name="theme" class="settings-input">
+                                            <option value="light" <?php if($theme=='light') echo 'selected'; ?>>Light Mode</option>
+                                            <option value="dark" <?php if($theme=='dark') echo 'selected'; ?>>Dark Mode</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Language</label>
+                                        <select name="lang" class="settings-input">
+                                            <option value="en" <?php if($lang=='en') echo 'selected'; ?>>English</option>
+                                            <option value="ms" <?php if($lang=='ms') echo 'selected'; ?>>Malay</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </form>
+
+                        <hr style="margin: 30px 0; border: 0; border-top: 1px solid var(--border-color);">
+                        
+                        <h4 style="margin-bottom: 15px; color: var(--text-main);">Security</h4>
+                        <div style="margin-bottom: 40px;">
+                            <button type="button" id="btn-open-password-modal" class="btn-save" style="background: #10b981;">Change Password</button>
+                        </div>
+
+                        <button type="submit" form="gen-settings-form" class="btn-save" style="width: 100%; padding: 15px; font-size: 16px;">
+                            Save General Settings
+                        </button>
+                    </div>
+
+                    <?php if($role === 'Admin' || $role === 'Developer'): ?>
+                    <div id="tab-users" class="tab-content" style="padding: 30px;">
+                        <div style="background: var(--hover-bg); padding: 20px; border-radius: 6px; margin-bottom: 25px;">
+                            <h4 style="margin-bottom:15px;">Register New User</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                <input type="text" id="new_u_name" placeholder="Name" class="settings-input">
+                                <input type="text" id="new_u_email" placeholder="Email" class="settings-input">
+                                <input type="text" id="new_u_phone" placeholder="Phone" class="settings-input">
+                                <input type="text" id="new_u_dept" placeholder="Department" class="settings-input">
+                                <input type="text" id="new_u_username" placeholder="Username (Login ID)" class="settings-input">
+                                <input type="password" id="new_u_pass" placeholder="Password" class="settings-input">
+                                <select id="new_u_role" class="settings-input" style="grid-column: span 2;">
+                                    <option value="User">User</option>
+                                    <option value="Developer">Developer</option>
+                                    <option value="Admin">Admin</option>
+                                </select>
+                            </div>
+                            <button id="btn-add-user" class="btn-save" style="margin-top:15px; background:#10b981;">Add User</button>
+                        </div>
+
+                        <h4 style="margin-bottom:15px;">Existing Users</h4>
+                        <div style="overflow-x: auto;">
+                            <table class="file-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Department</th>
+                                        <th>Username</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="user-list-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </main>
@@ -227,137 +345,49 @@ $t = $translations[$lang];
         </div>
     </div>
 
-    <div class="modal-overlay" id="settingsModal">
-        <div class="modal-card" style="max-width: 800px;">
-            <div class="modal-header">
-                <div class="modal-title">Settings</div>
-                <button class="btn-close-modal" id="btn-close-settings"><ion-icon name="close-outline"></ion-icon></button>
-            </div>
-            <div class="modal-body" style="padding: 0;">
-                
-                <div class="settings-tabs">
-                    <div class="tab-item active" data-tab="gen">General</div>
-                    
-                    <?php if($role === 'Admin' || $role === 'Developer'): ?>
-                    <div class="tab-item" data-tab="users">User Management</div>
-                    <?php endif; ?>
-                </div>
-
-                <div id="tab-gen" class="tab-content active" style="padding: 20px;">
-                    <form action="action_save_settings.php" method="post">
-                        <div class="form-group">
-                            <label>Header Title</label>
-                            <input type="text" name="app_title" value="<?php echo htmlspecialchars($app_title); ?>" class="settings-input">
-                        </div>
-                        <div class="form-group">
-                            <label>Footer Text</label>
-                            <input type="text" name="footer_text" value="<?php echo htmlspecialchars($footer_txt); ?>" class="settings-input">
-                        </div>
-                        <div class="form-group">
-                            <label>Theme</label>
-                            <select name="theme" class="settings-input">
-                                <option value="light" <?php if($theme=='light') echo 'selected'; ?>>Light Mode</option>
-                                <option value="dark" <?php if($theme=='dark') echo 'selected'; ?>>Dark Mode</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Language</label>
-                            <select name="lang" class="settings-input">
-                                <option value="en" <?php if($lang=='en') echo 'selected'; ?>>English</option>
-                                <option value="ms" <?php if($lang=='ms') echo 'selected'; ?>>Malay</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn-save">Save General Settings</button>
-                    </form>
-
-                    <hr style="margin: 30px 0; border: 0; border-top: 1px solid var(--border-color);">
-                    <h4 style="margin-bottom: 15px; color: var(--text-main);">Security</h4>
-                    <button type="button" id="btn-open-password-modal" class="btn-save" style="background: #10b981;">Change Password</button>
-                </div>
-
-                <?php if($role === 'Admin' || $role === 'Developer'): ?>
-                <div id="tab-users" class="tab-content" style="padding: 20px;">
-                    <div style="background: var(--hover-bg); padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-                        <h4 style="margin-bottom:10px;">Register New User</h4>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                            <input type="text" id="new_u_name" placeholder="Name" class="settings-input">
-                            <input type="text" id="new_u_email" placeholder="Email" class="settings-input">
-                            <input type="text" id="new_u_phone" placeholder="Phone" class="settings-input">
-                            <input type="text" id="new_u_dept" placeholder="Department" class="settings-input">
-                            <input type="text" id="new_u_username" placeholder="Username (Login ID)" class="settings-input">
-                            <input type="password" id="new_u_pass" placeholder="Password" class="settings-input">
-                            <select id="new_u_role" class="settings-input" style="grid-column: span 2;">
-                                <option value="User">User</option>
-                                <option value="Developer">Developer</option>
-                                <option value="Admin">Admin</option>
-                            </select>
-                        </div>
-                        <button id="btn-add-user" class="btn-save" style="margin-top:10px; background:#10b981;">Add User</button>
-                    </div>
-
-                    <h4 style="margin-bottom:10px;">Existing Users</h4>
-                    <table class="file-table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Department</th>
-                                <th>Username</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="user-list-body">
-                            </tbody>
-                    </table>
-                </div>
-                <?php endif; ?>
-
-            </div>
-        </div>
-    </div>
-
     <div class="modal-overlay" id="folderInfoModal">
-    <div class="modal-card">
-        <div class="modal-header">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <ion-icon name="folder" style="font-size: 24px; color: #1f2937;"></ion-icon>
-            </div>
-            <button class="btn-close-modal" onclick="document.getElementById('folderInfoModal').classList.remove('active')">
-                <ion-icon name="close-outline"></ion-icon>
-            </button>
-        </div>
-        <div class="modal-body">
-            <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-                <div style="flex: 1; background: var(--bg-body); padding: 15px; border-radius: 8px;">
-                    <span style="color:var(--text-muted); font-size:12px; display:block; margin-bottom:5px;">Folder name:</span>
-                    <span id="info-folder-name" style="font-size:16px; font-weight:600;">-</span>
+        <div class="modal-card">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <ion-icon name="folder" style="font-size: 24px; color: #1f2937;"></ion-icon>
                 </div>
-                <div style="flex: 1; background: var(--bg-body); padding: 15px; border-radius: 8px; display: flex; justify-content: center; align-items: center; gap: 20px;">
-                    <div id="modal-folder-download" style="text-align: center; cursor: pointer;">
-                        <ion-icon name="cloud-download-outline" style="font-size: 24px; color: var(--text-muted);"></ion-icon>
-                        <div style="font-size: 11px; color: var(--text-main);">Download</div>
+                <button class="btn-close-modal" onclick="document.getElementById('folderInfoModal').classList.remove('active')">
+                    <ion-icon name="close-outline"></ion-icon>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                    <div style="flex: 1; background: var(--bg-body); padding: 15px; border-radius: 8px;">
+                        <span style="color:var(--text-muted); font-size:12px; display:block; margin-bottom:5px;">Folder name:</span>
+                        <span id="info-folder-name" style="font-size:16px; font-weight:600;">-</span>
                     </div>
-                    <div id="modal-folder-rename" style="text-align: center; cursor: pointer;">
-                        <ion-icon name="create-outline" style="font-size: 24px; color: #f59e0b;"></ion-icon>
-                        <div style="font-size: 11px; color: var(--text-main);">Rename</div>
+                    <div style="flex: 1; background: var(--bg-body); padding: 15px; border-radius: 8px; display: flex; justify-content: center; align-items: center; gap: 20px;">
+                        <div id="modal-folder-download" style="text-align: center; cursor: pointer;">
+                            <ion-icon name="cloud-download-outline" style="font-size: 24px; color: var(--text-muted);"></ion-icon>
+                            <div style="font-size: 11px; color: var(--text-main);">Download</div>
+                        </div>
+                        <div id="modal-folder-rename" style="text-align: center; cursor: pointer;">
+                            <ion-icon name="create-outline" style="font-size: 24px; color: #f59e0b;"></ion-icon>
+                            <div style="font-size: 11px; color: var(--text-main);">Rename</div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div style="background: var(--bg-body); padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: left;">
-                <strong style="display:block; color:var(--text-muted); font-size:12px; margin-bottom:5px;">Audio File:</strong>
-                <span id="info-audio-name" style="font-size:16px; font-weight:600;">Scanning...</span>
-            </div>
+                <div style="background: var(--bg-body); padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: left;">
+                    <strong style="display:block; color:var(--text-muted); font-size:12px; margin-bottom:5px;">Audio File:</strong>
+                    <span id="info-audio-name" style="font-size:16px; font-weight:600;">Scanning...</span>
+                </div>
 
-            <div style="background: var(--bg-body); padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left;">
-                <strong style="display:block; color:var(--text-muted); font-size:12px; margin-bottom:5px;">Text File:</strong>
-                <span id="info-txt-name" style="font-size:16px; font-weight:600;">Scanning...</span>
+                <div style="background: var(--bg-body); padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left;">
+                    <strong style="display:block; color:var(--text-muted); font-size:12px; margin-bottom:5px;">Text File:</strong>
+                    <span id="info-txt-name" style="font-size:16px; font-weight:600;">Scanning...</span>
+                </div>
             </div>
-        </div>
-        <div class="modal-footer" style="justify-content: center; background: white; border-top: none;">
-            <button class="btn-modal btn-cancel" style="background: white; padding: 8px 30px;" onclick="document.getElementById('folderInfoModal').classList.remove('active')">Back</button>
+            <div class="modal-footer" style="justify-content: center; background: white; border-top: none;">
+                <button class="btn-modal btn-cancel" style="background: white; padding: 8px 30px;" onclick="document.getElementById('folderInfoModal').classList.remove('active')">Back</button>
+            </div>
         </div>
     </div>
-</div>
 
     <div class="modal-overlay" id="passwordModal" style="z-index: 2100;"> 
         <div class="modal-card">

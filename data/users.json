@@ -1,7 +1,7 @@
 [
     {
         "username": "admin",
-        "password_hash": "$2y$10$V4C6LBxHqgmUcgYshkRVq.qwSRQdxRVg8Kj7qm\/\/oxERNdfZrrvn2"
+        "password_hash": "$2y$10$8t3.d8yqWVUw5r.tLHCSlenSMWlMybovq2Rmmg7Ablv6Gvp\/VVqve"
     },
     {
         "username": "User",
@@ -21,7 +21,7 @@
     },
     {
         "username": "dev",
-        "password_hash": "$2y$10$oTdyWZ.6pVhRt7aSD7RX4OQvgSrhWGnAwRP8KvdtmFlSIMY1zC4sK",
+        "password_hash": "$2y$10$GjcU44KuBaT.kROyoqJ7ROXBPfUv1c\/1\/xT3NvIr9pQjuegNzZbGW",
         "name": "dev",
         "email": "",
         "phone": "",

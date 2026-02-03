@@ -6,17 +6,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Navigation ---
     const navDashboard = document.getElementById('nav-dashboard');
     const navFiles = document.getElementById('nav-files');
-    const navSettingsBtn = document.getElementById('nav-settings-btn'); 
+    const navSettings = document.getElementById('nav-settings'); 
 
     const viewDashboard = document.getElementById('view-dashboard');
     const viewFiles = document.getElementById('view-files');
-    const settingsModal = document.getElementById('settingsModal');
+    const viewSettings = document.getElementById('view-settings');
 
     function switchView(viewName) {
         viewDashboard.style.display = 'none';
         viewFiles.style.display = 'none';
+        viewSettings.style.display = 'none';
+        
         navDashboard.classList.remove('active');
         navFiles.classList.remove('active');
+        navSettings.classList.remove('active');
 
         if(viewName === 'dashboard') {
             viewDashboard.style.display = 'block';
@@ -26,27 +29,20 @@ document.addEventListener('DOMContentLoaded', () => {
             viewFiles.style.display = 'block';
             navFiles.classList.add('active');
             loadDataAndRender();
+        } else if(viewName === 'settings') {
+            viewSettings.style.display = 'block';
+            navSettings.classList.add('active');
+            if(typeof CURRENT_USER_ROLE !== 'undefined' && (CURRENT_USER_ROLE === 'Admin' || CURRENT_USER_ROLE === 'Developer')) {
+                loadUsers();
+            }
         }
     }
 
     navDashboard.addEventListener('click', (e) => { e.preventDefault(); switchView('dashboard'); });
     navFiles.addEventListener('click', (e) => { e.preventDefault(); switchView('files'); });
+    navSettings.addEventListener('click', (e) => { e.preventDefault(); switchView('settings'); });
 
-    navSettingsBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        settingsModal.classList.add('active');
-        
-        // UPDATED: Load users if Admin OR Developer
-        if(typeof CURRENT_USER_ROLE !== 'undefined' && (CURRENT_USER_ROLE === 'Admin' || CURRENT_USER_ROLE === 'Developer')) {
-            loadUsers();
-        }
-    });
-
-    document.getElementById('btn-close-settings').addEventListener('click', () => {
-        settingsModal.classList.remove('active');
-    });
-
-    // Tab Switching
+    // --- Tab Switching ---
     document.querySelectorAll('.tab-item').forEach(tab => {
         tab.addEventListener('click', () => {
             document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
@@ -56,10 +52,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- Change Password Modal Logic ---
+    // --- Change Password Modal ---
     const btnOpenPassword = document.getElementById('btn-open-password-modal');
     const passwordModal = document.getElementById('passwordModal');
-
     if(btnOpenPassword) {
         btnOpenPassword.addEventListener('click', (e) => {
             e.preventDefault();
@@ -74,10 +69,99 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('file-search');
     const dateStartInput = document.getElementById('date-start');
     const dateEndInput = document.getElementById('date-end');
+    const selectAllCheckbox = document.getElementById('select-all-files');
+    const btnBulkDelete = document.getElementById('btn-bulk-delete');
+    const btnBulkDownload = document.getElementById('btn-bulk-download');
 
     if(searchInput) searchInput.addEventListener('input', renderTable);
     if(dateStartInput) dateStartInput.addEventListener('change', renderTable);
     if(dateEndInput) dateEndInput.addEventListener('change', renderTable);
+
+    // --- Bulk Selection Logic ---
+    if(selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', (e) => {
+            const checkboxes = document.querySelectorAll('.file-checkbox');
+            checkboxes.forEach(cb => cb.checked = e.target.checked);
+            toggleBulkButtons();
+        });
+    }
+
+    function toggleBulkButtons() {
+        const count = document.querySelectorAll('.file-checkbox:checked').length;
+        
+        if(count > 0) {
+            if(btnBulkDelete) {
+                btnBulkDelete.style.display = 'inline-flex';
+                btnBulkDelete.innerHTML = `<ion-icon name="trash-outline" style="margin-right:5px;"></ion-icon> Delete (${count})`;
+            }
+            if(btnBulkDownload) {
+                btnBulkDownload.style.display = 'inline-flex';
+                btnBulkDownload.innerHTML = `<ion-icon name="cloud-download-outline" style="margin-right:5px;"></ion-icon> Download (${count})`;
+            }
+        } else {
+            if(btnBulkDelete) btnBulkDelete.style.display = 'none';
+            if(btnBulkDownload) btnBulkDownload.style.display = 'none';
+        }
+    }
+
+    // Event Delegation for Checkboxes
+    if(tableBody) {
+        tableBody.addEventListener('change', (e) => {
+            if(e.target.classList.contains('file-checkbox')) {
+                toggleBulkButtons();
+                // If one is unchecked, uncheck the master
+                if(!e.target.checked && selectAllCheckbox) selectAllCheckbox.checked = false;
+            }
+        });
+    }
+
+    // --- Bulk Delete Action ---
+    if(btnBulkDelete) {
+        btnBulkDelete.addEventListener('click', async () => {
+            const selected = Array.from(document.querySelectorAll('.file-checkbox:checked'));
+            if(selected.length === 0) return;
+            
+            if(!confirm(`Are you sure you want to delete ${selected.length} items? This action cannot be undone.`)) return;
+
+            btnBulkDelete.disabled = true;
+            btnBulkDelete.textContent = 'Deleting...';
+
+            for (const checkbox of selected) {
+                const fd = new FormData();
+                fd.append('filename', checkbox.value);
+                await fetch('action_delete.php', { method: 'POST', body: fd });
+            }
+
+            btnBulkDelete.disabled = false;
+            loadDataAndRender();
+        });
+    }
+
+    // --- Bulk Download Action ---
+    if(btnBulkDownload) {
+        btnBulkDownload.addEventListener('click', () => {
+            const selected = Array.from(document.querySelectorAll('.file-checkbox:checked'));
+            if(selected.length === 0) return;
+
+            // Create a temporary form to submit the file list via POST
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'action_download_bulk.php';
+            form.style.display = 'none';
+
+            selected.forEach(cb => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'files[]';
+                input.value = cb.value;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        });
+    }
 
     function loadDataAndRender() {
         fetch('action_list_files.php?dir=' + encodeURIComponent(currentPath))
@@ -105,68 +189,68 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderTable() {
-    if(!tableBody) return;
-    tableBody.innerHTML = '';
-    const searchVal = searchInput ? searchInput.value.toLowerCase().trim() : '';
-    const startVal = dateStartInput ? dateStartInput.value : '';
-    const endVal = dateEndInput ? dateEndInput.value : '';
+        if(!tableBody) return;
+        tableBody.innerHTML = '';
 
-    const filesToShow = allFiles.filter(file => {
-        // 1. Search Filter
-        if (searchVal !== '' && !file.name.toLowerCase().includes(searchVal)) return false;
-        
-        // 2. Date Filter
-        if (startVal || endVal) {
-            const fileDate = file.date.substring(0, 10);
-            if (startVal && fileDate < startVal) return false;
-            if (endVal && fileDate > endVal) return false;
+        if(selectAllCheckbox) selectAllCheckbox.checked = false;
+        toggleBulkButtons();
+
+        const searchVal = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        const startVal = dateStartInput ? dateStartInput.value : '';
+        const endVal = dateEndInput ? dateEndInput.value : '';
+
+        const filesToShow = allFiles.filter(file => {
+            if (searchVal !== '' && !file.name.toLowerCase().includes(searchVal)) return false;
+            if (startVal || endVal) {
+                const fileDate = file.date.substring(0, 10);
+                if (startVal && fileDate < startVal) return false;
+                if (endVal && fileDate > endVal) return false;
+            }
+            return true;
+        });
+
+        if (currentPath !== '') {
+            const tr = document.createElement('tr');
+            // Added empty cells for checkbox and No column
+            tr.innerHTML = `<td></td><td></td><td colspan="4"><a href="#" onclick="goUpFolder()" style="font-weight:bold; color:#333; text-decoration:none;">... (Go Back)</a></td>`;
+            tableBody.appendChild(tr);
         }
-        return true;
-    });
 
-    // Add "Go Back" row if in a subfolder
-    if (currentPath !== '') {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td></td><td colspan="4"><a href="#" onclick="goUpFolder()" style="font-weight:bold; color:#333; text-decoration:none;">... (Go Back)</a></td>`;
-        tableBody.appendChild(tr);
+        filesToShow.forEach((file, index) => {
+            const tr = document.createElement('tr');
+            let typeLabel = 'FILE';
+            let iconName = 'document-outline';
+            let nameAction = '';
+
+            if (file.type === 'folder') {
+                typeLabel = 'FOLDER';
+                iconName = 'folder-open';
+                nameAction = `onclick="showFolderPopup('${file.name}', '${file.relativePath}')" style="cursor:pointer; color:#2563eb; font-weight:bold;"`;
+            } else {
+                if(file.name.endsWith('.mp3')) typeLabel = 'MP3';
+                if(file.name.endsWith('.txt')) typeLabel = 'TXT';
+                nameAction = `onclick="window.open('view_file.php?f=' + encodeURIComponent('${file.relativePath}'), '_blank')" style="cursor:pointer;"`;
+            }
+
+            const actionsHTML = `
+                <div class="action-icon-group">
+                    <span class="icon-btn delete" title="Delete" onclick="deleteFile('${file.relativePath}')">
+                        <ion-icon name="trash-outline"></ion-icon>
+                    </span>
+                </div>
+            `;
+
+            tr.innerHTML = `
+                <td><input type="checkbox" class="file-checkbox" value="${file.relativePath}"></td>
+                <td>${index + 1}</td>
+                <td ${nameAction}><ion-icon name="${iconName}" style="vertical-align:bottom; margin-right:5px;"></ion-icon> ${file.name}</td>
+                <td>${file.date ? file.date.substring(0,10) : '-'}</td>
+                <td><span class="badge">${typeLabel}</span></td>
+                <td class="col-actions">${actionsHTML}</td>
+            `;
+            tableBody.appendChild(tr);
+        });
     }
-
-    filesToShow.forEach((file, index) => {
-        const tr = document.createElement('tr');
-        let typeLabel = 'FILE';
-        let iconName = 'document-outline';
-        let nameAction = '';
-
-        // Determine icon and click behavior based on type
-        if (file.type === 'folder') {
-            typeLabel = 'FOLDER';
-            iconName = 'folder-open';
-            nameAction = `onclick="showFolderPopup('${file.name}', '${file.relativePath}')" style="cursor:pointer; color:#2563eb; font-weight:bold;"`;
-        } else {
-            if(file.name.endsWith('.mp3')) typeLabel = 'MP3';
-            if(file.name.endsWith('.txt')) typeLabel = 'TXT';
-            nameAction = `onclick="window.open('view_file.php?f=' + encodeURIComponent('${file.relativePath}'), '_blank')" style="cursor:pointer;"`;
-        }
-
-        // Updated Actions: Removed download and rename icons
-        const actionsHTML = `
-            <div class="action-icon-group">
-                <span class="icon-btn delete" title="Delete" onclick="deleteFile('${file.relativePath}')">
-                    <ion-icon name="trash-outline"></ion-icon>
-                </span>
-            </div>
-        `;
-
-        tr.innerHTML = `
-            <td>${index + 1}</td>
-            <td ${nameAction}><ion-icon name="${iconName}" style="vertical-align:bottom; margin-right:5px;"></ion-icon> ${file.name}</td>
-            <td>${file.date ? file.date.substring(0,10) : '-'}</td>
-            <td><span class="badge">${typeLabel}</span></td>
-            <td class="col-actions">${actionsHTML}</td>
-        `;
-        tableBody.appendChild(tr);
-    });
-}
 
     // --- Helpers ---
     window.goUpFolder = function() {
@@ -211,13 +295,11 @@ document.addEventListener('DOMContentLoaded', () => {
     window.showFolderPopup = function(folderName, relPath) {
         const modal = document.getElementById('folderInfoModal');
         
-        // 1. Reset text content and show modal
         document.getElementById('info-folder-name').textContent = folderName;
         document.getElementById('info-audio-name').textContent = 'Scanning...';
         document.getElementById('info-txt-name').textContent = 'Scanning...';
         modal.classList.add('active');
 
-        // 2. Attach click events to the new popup action icons
         document.getElementById('modal-folder-download').onclick = () => {
             window.location.href = 'action_download_folder.php?folder=' + encodeURIComponent(relPath);
         };
@@ -227,7 +309,6 @@ document.addEventListener('DOMContentLoaded', () => {
             renameFile(folderName, 'folder');
         };
 
-        // 3. Fetch folder contents to update file details
         fetch('action_list_files.php?dir=' + encodeURIComponent(relPath))
             .then(res => res.json())
             .then(files => {
@@ -295,7 +376,6 @@ document.addEventListener('DOMContentLoaded', () => {
             fd.append('action', 'add');
             fd.append('name', inputs[0]); fd.append('email', inputs[1]); fd.append('phone', inputs[2]);
             fd.append('department', inputs[3]); fd.append('username', inputs[4]); fd.append('password', inputs[5]);
-            // Add Role
             const roleSelect = document.getElementById('new_u_role');
             if(roleSelect) fd.append('role', roleSelect.value);
 
