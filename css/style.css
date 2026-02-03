@@ -16,6 +16,7 @@
     --table-header: #f9fafb;
     --table-hover: #f9faff;
     --input-bg: #ffffff;
+    --separator-color: #000000; /* Black for the separator lines */
 }
 
 /* === Dark Mode Variables === */
@@ -31,6 +32,7 @@ body.dark-mode {
     --table-header: #111827;
     --table-hover: #374151;
     --input-bg: #374151;
+    --separator-color: #ffffff; /* White lines in dark mode */
 }
 
 /* Base Reset */
@@ -48,7 +50,7 @@ body {
 .top-header {
     height: var(--header-height);
     background: var(--bg-header);
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color); /* Subtle gray border */
     display: flex;
     align-items: center;
     padding: 0;
@@ -76,27 +78,107 @@ body {
 /* === LAYOUT === */
 .app-layout { display: flex; height: calc(100vh - var(--header-height) - var(--footer-height)); }
 
-/* SIDEBAR */
+/* === SIDEBAR === */
 .sidebar {
     width: var(--sidebar-width);
     background: var(--bg-sidebar);
-    border-right: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color); 
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 20px 0;
+    padding: 0;
 }
-.user-profile { padding: 0 20px 20px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+
+/* Top Section (Profile + Menu) */
+.sidebar-top {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-profile { 
+    padding: 20px; 
+    /* LINE 1: Below Profile */
+    border-bottom: 1px solid rgb(188, 188, 188); 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+}
 .avatar-circle { width: 40px; height: 40px; background: var(--primary); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
 .user-info { display: flex; flex-direction: column; }
 .u-name { font-weight: 600; font-size: 14px; color: var(--text-main); }
 .u-role { font-size: 12px; color: var(--text-muted); }
 
-.nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 20px; color: var(--text-muted); text-decoration: none; font-size: 14px; transition: 0.2s; }
-.nav-item:hover, .nav-item.active { background: var(--hover-bg); color: var(--primary); border-right: 3px solid var(--primary); }
-.nav-item ion-icon { font-size: 18px; }
-.logout { color: #dc2626; }
-.logout:hover { background: #fef2f2; color: #dc2626; border-right-color: #dc2626; }
+/* Navigation Menu Container */
+.nav-menu {
+    /* LINE 3: Bottom of the Menu Section (Below Files) */
+    border-bottom: 1px solid rgb(188, 188, 188);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Sidebar Links */
+.nav-item { 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+    padding: 15px 20px; 
+    margin: 0;          
+    
+    color: var(--text-main);
+    font-size: 15px;         
+    font-weight: 500;        
+    
+    text-decoration: none; 
+    border-radius: 0;        
+    transition: all 0.2s ease;
+    
+    border-left: 5px solid transparent; 
+}
+
+/* === NEW: LINE BETWEEN DASHBOARD AND FILES === */
+.nav-menu .nav-item:not(:last-child) {
+    /* LINE 2: Between Dashboard and Files */
+    border-bottom: 1px solid rgb(188, 188, 188);
+}
+
+.nav-item:hover { 
+    background: var(--hover-bg); 
+}
+
+/* Active State */
+.nav-item.active { 
+    background: #e0f2fe; 
+    color: var(--primary); 
+    border-left-color: var(--primary); 
+    font-weight: 600; 
+}
+
+.nav-item ion-icon { font-size: 20px; }
+
+/* === SIDEBAR BOTTOM (Settings & Logout) === */
+.sidebar-bottom {
+    display: flex;
+    flex-direction: column;
+    /* LINE 4: Top of Bottom Section (Above Settings) */
+    border-top: 1px solid rgb(188, 188, 188);
+}
+
+/* Add lines between bottom items */
+.sidebar-bottom .nav-item {
+    /* LINE 5: Between Settings and Logout */
+    border-bottom: 1px solid rgb(188, 188, 188);
+}
+
+.logout { 
+    color: #dc2626; 
+}
+
+.logout:hover { 
+    background: #fef2f2; 
+    color: #b91c1c; 
+}
+/* === END SIDEBAR === */
+
 
 /* MAIN CONTENT */
 .main-content { flex: 1; background: var(--bg-body); padding: 30px; overflow-y: auto; }
@@ -122,7 +204,7 @@ body {
 .action-btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
 .search-group input { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; outline: none; background: var(--input-bg); color: var(--text-main); }
 
-/* === NEW: DATE FILTER STYLE === */
+/* DATE FILTER */
 .date-filter {
     padding: 6px; 
     border: 1px solid var(--border-color); 
@@ -132,7 +214,7 @@ body {
     font-size: 13px;
 }
 
-/* === IMPORTANT TABLE FIX === */
+/* TABLE */
 .file-workspace { display: flex; background: var(--bg-card); border-radius: 0 0 8px 8px; height: 545px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
 .file-table-container { flex: 1; padding: 0; overflow-y: auto; }
 
@@ -140,35 +222,19 @@ body {
     width: 100%; 
     border-collapse: collapse; 
     font-size: 13px;
-    table-layout: fixed; /* This forces column widths to be respected */
+    table-layout: fixed; 
 }
 
 .file-table th { background: var(--table-header); padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); color: var(--text-muted); position: sticky; top: 0; z-index: 5; }
 .file-table td { padding: 12px; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
 .file-table tr:hover { background: var(--table-hover); }
 
-/* Column 1: No */
+/* Table Columns */
 .file-table th:nth-child(1), .file-table td:nth-child(1) { width: 50px; text-align: center; }
-
-/* Column 2: Name (Prevent Overflow) */
-.file-table th:nth-child(2), .file-table td:nth-child(2) { 
-    width: 40%; 
-    white-space: nowrap; 
-    overflow: hidden; 
-    text-overflow: ellipsis; /* Adds "..." if name is too long */
-}
-
-/* Column 3: Date */
+.file-table th:nth-child(2), .file-table td:nth-child(2) { width: 40%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .file-table th:nth-child(3), .file-table td:nth-child(3) { width: 120px; }
-
-/* Column 4: Type */
 .file-table th:nth-child(4), .file-table td:nth-child(4) { width: 100px; text-align: center; }
-
-/* Column 5: Actions (Guaranteed Space) */
-.file-table th:nth-child(5), .file-table td:nth-child(5) { 
-    width: 180px; 
-    min-width: 180px;
-}
+.file-table th:nth-child(5), .file-table td:nth-child(5) { width: 180px; min-width: 180px; }
 
 .folder-list { list-style: none; }
 .folder-list li { padding: 8px 0; font-size: 13px; color: var(--text-main); display: flex; align-items: center; gap: 8px; cursor: pointer; }
