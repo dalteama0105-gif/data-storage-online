@@ -1,19 +1,11 @@
 [
     {
         "username": "admin",
-        "password_hash": "$2y$10$8t3.d8yqWVUw5r.tLHCSlenSMWlMybovq2Rmmg7Ablv6Gvp\/VVqve"
-    },
-    {
-        "username": "User",
-        "password_hash": "$2y$10$Ds\/84Wn2l3gf3pavGJvHieChtS1Q4nGAUUweBViwZdTlYcEcs6abS",
-        "name": "UserA",
-        "email": "",
-        "phone": "",
-        "department": ""
+        "password_hash": "$2y$10$OOpnh8SXA1lJKBsi8tQRzOK3CgmCAENEIo5h8omn0WL4L6..PJ4m."
     },
     {
         "username": "User_b",
-        "password_hash": "$2y$10$w33iCxKfw4nGBg51\/vOvCOG\/NGCH3tKMeg8bURlRomBRQaYnM7TAK",
+        "password_hash": "$2y$10$f\/1va6aZQUH2K7iQlrrVfONKOrViDDXvGFxRMtPbF.dGNpoSk3kDu",
         "name": "UserB",
         "email": "",
         "phone": "",

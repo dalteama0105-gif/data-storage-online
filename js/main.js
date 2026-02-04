@@ -6,19 +6,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Navigation ---
     const navDashboard = document.getElementById('nav-dashboard');
     const navFiles = document.getElementById('nav-files');
+    const navIso = document.getElementById('nav-iso'); // NEW
     const navSettings = document.getElementById('nav-settings'); 
 
     const viewDashboard = document.getElementById('view-dashboard');
     const viewFiles = document.getElementById('view-files');
+    const viewIso = document.getElementById('view-iso'); // NEW
     const viewSettings = document.getElementById('view-settings');
 
     function switchView(viewName) {
         viewDashboard.style.display = 'none';
         viewFiles.style.display = 'none';
+        viewIso.style.display = 'none';
         viewSettings.style.display = 'none';
         
         navDashboard.classList.remove('active');
         navFiles.classList.remove('active');
+        if(navIso) navIso.classList.remove('active');
         navSettings.classList.remove('active');
 
         if(viewName === 'dashboard') {
@@ -29,6 +33,10 @@ document.addEventListener('DOMContentLoaded', () => {
             viewFiles.style.display = 'block';
             navFiles.classList.add('active');
             loadDataAndRender();
+        } else if(viewName === 'iso') { // NEW
+            viewIso.style.display = 'block';
+            if(navIso) navIso.classList.add('active');
+            loadIsoData();
         } else if(viewName === 'settings') {
             viewSettings.style.display = 'block';
             navSettings.classList.add('active');
@@ -40,7 +48,82 @@ document.addEventListener('DOMContentLoaded', () => {
 
     navDashboard.addEventListener('click', (e) => { e.preventDefault(); switchView('dashboard'); });
     navFiles.addEventListener('click', (e) => { e.preventDefault(); switchView('files'); });
+    if(navIso) navIso.addEventListener('click', (e) => { e.preventDefault(); switchView('iso'); });
     navSettings.addEventListener('click', (e) => { e.preventDefault(); switchView('settings'); });
+
+    // --- ISO LOGIC (NEW) ---
+    const btnOpenIsoModal = document.getElementById('btn-open-iso-modal');
+    const isoModal = document.getElementById('isoModal');
+    const btnSaveIso = document.getElementById('btn-save-iso');
+    const isoSearch = document.getElementById('iso-search');
+
+    if(btnOpenIsoModal) btnOpenIsoModal.addEventListener('click', () => isoModal.classList.add('active'));
+    
+    if(isoSearch) {
+        isoSearch.addEventListener('input', (e) => {
+            const val = e.target.value.toLowerCase();
+            document.querySelectorAll('.iso-card').forEach(card => {
+                const txt = card.textContent.toLowerCase();
+                card.style.display = txt.includes(val) ? 'block' : 'none';
+            });
+        });
+    }
+
+    if(btnSaveIso) {
+        btnSaveIso.addEventListener('click', async () => {
+            const num = document.getElementById('newIsoNumber').value;
+            const name = document.getElementById('newIsoName').value;
+            const file = document.getElementById('newIsoImage').files[0];
+
+            if(!num || !name) { alert("Number and Name required"); return; }
+
+            const fd = new FormData();
+            fd.append('iso_number', num);
+            fd.append('iso_name', name);
+            if(file) fd.append('iso_image', file);
+
+            const res = await fetch('action_iso.php', { method: 'POST', body: fd });
+            const json = await res.json();
+
+            if(json.success) {
+                document.getElementById('newIsoNumber').value = '';
+                document.getElementById('newIsoName').value = '';
+                document.getElementById('newIsoImage').value = '';
+                isoModal.classList.remove('active');
+                loadIsoData();
+            } else {
+                alert(json.message);
+            }
+        });
+    }
+
+    function loadIsoData() {
+        const grid = document.getElementById('iso-grid-container');
+        if(!grid) return;
+        grid.innerHTML = '<p>Loading...</p>';
+        
+        fetch('action_iso.php')
+            .then(r => r.json())
+            .then(data => {
+                grid.innerHTML = '';
+                if(data.length === 0) {
+                    grid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#888;">No ISOs found. Click "Add ISO" to create one.</p>';
+                    return;
+                }
+                data.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'iso-card';
+                    card.innerHTML = `
+                        <div class="iso-img-container">
+                            <img src="${item.image}" alt="ISO" class="iso-img">
+                        </div>
+                        <div class="iso-title">ISO ${item.number}</div>
+                        <div class="iso-subtitle">${item.name}</div>
+                    `;
+                    grid.appendChild(card);
+                });
+            });
+    }
 
     // --- Tab Switching ---
     document.querySelectorAll('.tab-item').forEach(tab => {
@@ -234,6 +317,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const actionsHTML = `
                 <div class="action-icon-group">
+                    <span class="icon-btn" title="Rename" onclick="renameFile('${file.name}', '${file.type}')">
+                        <ion-icon name="create-outline"></ion-icon>
+                    </span>
                     <span class="icon-btn delete" title="Delete" onclick="deleteFile('${file.relativePath}')">
                         <ion-icon name="trash-outline"></ion-icon>
                     </span>
@@ -302,11 +388,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('modal-folder-download').onclick = () => {
             window.location.href = 'action_download_folder.php?folder=' + encodeURIComponent(relPath);
-        };
-
-        document.getElementById('modal-folder-rename').onclick = () => {
-            modal.classList.remove('active');
-            renameFile(folderName, 'folder');
         };
 
         fetch('action_list_files.php?dir=' + encodeURIComponent(relPath))

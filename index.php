@@ -24,6 +24,7 @@ $translations = [
     'en' => [
         'dashboard' => 'Dashboard',
         'all_files' => 'Files',
+        'iso'       => 'ISO Documentation',
         'settings'  => 'Settings',
         'logout'    => 'Logout',
         'welcome'   => 'Welcome back',
@@ -39,6 +40,7 @@ $translations = [
     'ms' => [
         'dashboard' => 'Papan Pemuka',
         'all_files' => 'Fail',
+        'iso'       => 'ISO Documentation',
         'settings'  => 'Tetapan',
         'logout'    => 'Log Keluar',
         'welcome'   => 'Selamat Kembali',
@@ -137,6 +139,9 @@ $t = $translations[$lang];
                     <a href="#" class="nav-item" id="nav-files">
                         <ion-icon name="folder-open-outline"></ion-icon> <?php echo $t['all_files']; ?>
                     </a>
+                    <a href="#" class="nav-item" id="nav-iso">
+                        <ion-icon name="ribbon-outline"></ion-icon> <?php echo $t['iso']; ?>
+                    </a>
                 </nav>
             </div>
 
@@ -214,6 +219,27 @@ $t = $translations[$lang];
                 </div>
             </div>
 
+            <div id="view-iso" class="content-view" style="display: none;">
+                <div class="file-toolbar">
+                    <button class="action-btn primary" style="cursor: default;">
+                        <ion-icon name="add-circle-outline"></ion-icon> Import File
+                    </button>
+                    
+                    <div style="display: flex; gap: 10px; align-items: center; margin-left: auto;">
+                         <input type="text" id="iso-search" placeholder="Search ISO..." 
+                               style="padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--input-bg); color: var(--text-main); width: 200px;">
+                    </div>
+                </div>
+
+                <div class="iso-workspace">
+                    <div class="iso-grid" id="iso-grid-container">
+                        </div>
+                    <button class="btn-floating-add" id="btn-open-iso-modal">
+                        <ion-icon name="add-circle"></ion-icon> Add ISO
+                    </button>
+                </div>
+            </div>
+
             <div id="view-settings" class="content-view" style="display: none;">
                 <h2 class="view-title" style="margin-bottom: 20px;"><?php echo $t['settings']; ?></h2>
                 
@@ -288,7 +314,7 @@ $t = $translations[$lang];
                                     <option value="User">User</option>
                                     <option value="Developer">Developer</option>
                                     <option value="Admin">Admin</option>
-                                </select>
+                                    <option value="ISO User">ISO User</option> </select>
                             </div>
                             <button id="btn-add-user" class="btn-save" style="margin-top:15px; background:#10b981;">Add User</button>
                         </div>
@@ -317,6 +343,33 @@ $t = $translations[$lang];
     <footer class="bottom-footer">
         <p><?php echo htmlspecialchars($footer_txt); ?></p>
     </footer>
+
+    <div class="modal-overlay" id="isoModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">Add New ISO</div>
+                <button class="btn-close-modal" onclick="document.getElementById('isoModal').classList.remove('active')"><ion-icon name="close-outline"></ion-icon></button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-input-group">
+                    <label>ISO Number (e.g. 9001)</label>
+                    <input type="text" id="newIsoNumber" class="settings-input" placeholder="9001">
+                </div>
+                <div class="modal-input-group">
+                    <label>ISO Name (Subtitle)</label>
+                    <input type="text" id="newIsoName" class="settings-input" placeholder="Quality Management Systems">
+                </div>
+                <div class="modal-input-group">
+                    <label>ISO Logo Icon</label>
+                    <input type="file" id="newIsoImage" accept="image/*" class="settings-input">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal btn-cancel" onclick="document.getElementById('isoModal').classList.remove('active')">Cancel</button>
+                <button class="btn-modal btn-confirm" id="btn-save-iso">Add ISO</button>
+            </div>
+        </div>
+    </div>
 
     <div class="modal-overlay" id="uploadModal">
         <div class="modal-card">
@@ -365,10 +418,6 @@ $t = $translations[$lang];
                         <div id="modal-folder-download" style="text-align: center; cursor: pointer;">
                             <ion-icon name="cloud-download-outline" style="font-size: 24px; color: var(--text-muted);"></ion-icon>
                             <div style="font-size: 11px; color: var(--text-main);">Download</div>
-                        </div>
-                        <div id="modal-folder-rename" style="text-align: center; cursor: pointer;">
-                            <ion-icon name="create-outline" style="font-size: 24px; color: #f59e0b;"></ion-icon>
-                            <div style="font-size: 11px; color: var(--text-main);">Rename</div>
                         </div>
                     </div>
                 </div>
