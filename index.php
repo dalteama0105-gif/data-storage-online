@@ -335,6 +335,9 @@ $t = $translations[$lang];
             </div>
         </main>
     </div>
+    <footer class="bottom-footer">
+        <p><?php echo htmlspecialchars($footer_txt); ?></p>
+    </footer>
 
     <div class="modal-overlay" id="isoModal">
         <div class="modal-card">
