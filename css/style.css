@@ -285,7 +285,7 @@ select { color: var(--text-main) !important; background-color: transparent; }
 .tab-content.active { display: block; animation: fadeIn 0.3s; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* === ISO GRID STYLES (NEW) === */
+/* === ISO GRID STYLES === */
 .iso-workspace {
     background: var(--bg-card);
     border-radius: 0 0 8px 8px;
@@ -310,6 +310,7 @@ select { color: var(--text-main) !important; background-color: transparent; }
     background: var(--bg-body);
     transition: transform 0.2s, box-shadow 0.2s;
     cursor: pointer;
+    position: relative; /* Context menu positioning */
 }
 
 .iso-card:hover {
@@ -317,16 +318,18 @@ select { color: var(--text-main) !important; background-color: transparent; }
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
+/* Find these lines around line 350 */
+
 .iso-img-container {
-    height: 100px;
+    height: 150px;       /* Increased from 100px */
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
 }
 
 .iso-img {
-    max-height: 80px;
+    max-height: 130px;   /* Increased from 80px */
     max-width: 100%;
 }
 
@@ -363,4 +366,31 @@ select { color: var(--text-main) !important; background-color: transparent; }
 
 .btn-floating-add:hover {
     background: #1d4ed8;
+}
+
+/* === CONTEXT MENU (NEW) === */
+.custom-context-menu {
+    display: none;
+    position: absolute;
+    z-index: 1000;
+    width: 150px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border-radius: 6px;
+    overflow: hidden;
+}
+.ctx-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s;
+}
+.ctx-item:hover {
+    background: #fee2e2;
+    color: #dc2626;
 }

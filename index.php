@@ -186,10 +186,6 @@ $t = $translations[$lang];
                         <ion-icon name="trash-outline"></ion-icon> Delete Selected
                     </button>
                     
-                    <button class="action-btn" id="btn-bulk-download" style="display: none; background: #10b981; color: white; border-color: #10b981; margin-left: 10px;">
-                        <ion-icon name="cloud-download-outline"></ion-icon> Download Selected
-                    </button>
-                    
                     <div style="display: flex; gap: 10px; align-items: center; margin-left: auto;">
                         <input type="date" id="date-start" class="date-filter" title="Start Date">
                         <span style="color:var(--text-muted); font-size:13px;">to</span>
@@ -340,10 +336,6 @@ $t = $translations[$lang];
         </main>
     </div>
 
-    <footer class="bottom-footer">
-        <p><?php echo htmlspecialchars($footer_txt); ?></p>
-    </footer>
-
     <div class="modal-overlay" id="isoModal">
         <div class="modal-card">
             <div class="modal-header">
@@ -352,16 +344,15 @@ $t = $translations[$lang];
             </div>
             <div class="modal-body">
                 <div class="modal-input-group">
-                    <label>ISO Number (e.g. 9001)</label>
-                    <input type="text" id="newIsoNumber" class="settings-input" placeholder="9001">
-                </div>
-                <div class="modal-input-group">
-                    <label>ISO Name (Subtitle)</label>
-                    <input type="text" id="newIsoName" class="settings-input" placeholder="Quality Management Systems">
-                </div>
-                <div class="modal-input-group">
-                    <label>ISO Logo Icon</label>
-                    <input type="file" id="newIsoImage" accept="image/*" class="settings-input">
+                    <label>Select ISO Standard</label>
+                    <select id="newIsoSelect" class="settings-input">
+                        <option value="9001|Quality Management Systems">ISO 9001 - Quality Management Systems</option>
+                        <option value="14001|Environmental Management">ISO 14001 - Environmental Management</option>
+                        <option value="27001|Information Security Management">ISO 27001 - Information Security Management</option>
+                        <option value="45001|Occupational Health & Safety">ISO 45001 - Occupational Health & Safety</option>
+                        <option value="50001|Energy Management">ISO 50001 - Energy Management</option>
+                        <option value="22000|Food Safety Management">ISO 22000 - Food Safety Management</option>
+                    </select>
                 </div>
             </div>
             <div class="modal-footer">
@@ -464,6 +455,12 @@ $t = $translations[$lang];
                     <button type="submit" class="btn-modal btn-confirm" style="background: #10b981;">Update</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <div id="iso-context-menu" class="custom-context-menu">
+        <div class="ctx-item" id="ctx-delete-iso">
+            <ion-icon name="trash-outline"></ion-icon> Delete ISO
         </div>
     </div>
 

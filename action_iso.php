@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     exit;
 }
 
-// 3. POST Request: Add New ISO
+// 3. POST Request
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Permission Check
     if (!in_array($userRole, $allowed_roles)) {
@@ -30,24 +30,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $currentData = file_exists($file) ? json_decode(file_get_contents($file), true) : [];
     
-    // Handle Image Upload
-    $webPath = 'logo.png'; // Default fallback
-    if (isset($_FILES['iso_image']) && $_FILES['iso_image']['error'] === 0) {
-        $uploadDir = 'uploads/iso_icons/';
-        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
-        
-        $filename = time() . '_' . basename($_FILES['iso_image']['name']);
-        $targetPath = $uploadDir . $filename;
-        
-        if (move_uploaded_file($_FILES['iso_image']['tmp_name'], $targetPath)) {
-            $webPath = $targetPath;
+    // Check Action
+    $action = $_POST['action'] ?? 'add'; // Default to add for compatibility
+
+    // --- DELETE ACTION ---
+    if ($action === 'delete') {
+        $idToDelete = $_POST['id'] ?? '';
+        $newData = [];
+        $found = false;
+
+        foreach ($currentData as $iso) {
+            if ($iso['id'] === $idToDelete) {
+                $found = true;
+                continue; // Skip adding this to the new array
+            }
+            $newData[] = $iso;
         }
+
+        if ($found) {
+            file_put_contents($file, json_encode($newData, JSON_PRETTY_PRINT));
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'ISO not found']);
+        }
+        exit;
     }
+
+    // --- ADD ACTION ---
+    // Get params
+    $isoNumber = $_POST['iso_number'] ?? '';
+    $isoName = $_POST['iso_name'] ?? '';
+
+    // Automatic Logo Assignment Logic
+    $autoImageName = 'iso_' . $isoNumber . '.png';
+    $targetPath = 'uploads/iso_icons/' . $autoImageName;
+    
+    // Ensure folder exists
+    if (!is_dir('uploads/iso_icons')) {
+        mkdir('uploads/iso_icons', 0777, true);
+    }
+
+    $webPath = $targetPath;
 
     $newIso = [
         'id' => uniqid(),
-        'name' => $_POST['iso_name'] ?? 'New ISO',
-        'number' => $_POST['iso_number'] ?? '',
+        'name' => $isoName,
+        'number' => $isoNumber,
         'image' => $webPath,
         'date' => date('Y-m-d')
     ];

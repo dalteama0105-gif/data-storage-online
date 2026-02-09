@@ -6,12 +6,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Navigation ---
     const navDashboard = document.getElementById('nav-dashboard');
     const navFiles = document.getElementById('nav-files');
-    const navIso = document.getElementById('nav-iso'); // NEW
+    const navIso = document.getElementById('nav-iso'); 
     const navSettings = document.getElementById('nav-settings'); 
 
     const viewDashboard = document.getElementById('view-dashboard');
     const viewFiles = document.getElementById('view-files');
-    const viewIso = document.getElementById('view-iso'); // NEW
+    const viewIso = document.getElementById('view-iso'); 
     const viewSettings = document.getElementById('view-settings');
 
     function switchView(viewName) {
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
             viewFiles.style.display = 'block';
             navFiles.classList.add('active');
             loadDataAndRender();
-        } else if(viewName === 'iso') { // NEW
+        } else if(viewName === 'iso') { 
             viewIso.style.display = 'block';
             if(navIso) navIso.classList.add('active');
             loadIsoData();
@@ -51,14 +51,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if(navIso) navIso.addEventListener('click', (e) => { e.preventDefault(); switchView('iso'); });
     navSettings.addEventListener('click', (e) => { e.preventDefault(); switchView('settings'); });
 
-    // --- ISO LOGIC (NEW) ---
+    // --- ISO LOGIC ---
     const btnOpenIsoModal = document.getElementById('btn-open-iso-modal');
     const isoModal = document.getElementById('isoModal');
     const btnSaveIso = document.getElementById('btn-save-iso');
     const isoSearch = document.getElementById('iso-search');
+    const ctxMenu = document.getElementById('iso-context-menu');
+    let rightClickedIsoId = null;
 
     if(btnOpenIsoModal) btnOpenIsoModal.addEventListener('click', () => isoModal.classList.add('active'));
     
+    // Global Click to close context menu
+    window.addEventListener('click', () => {
+        if(ctxMenu) ctxMenu.style.display = 'none';
+    });
+
     if(isoSearch) {
         isoSearch.addEventListener('input', (e) => {
             const val = e.target.value.toLowerCase();
@@ -71,25 +78,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if(btnSaveIso) {
         btnSaveIso.addEventListener('click', async () => {
-            const num = document.getElementById('newIsoNumber').value;
-            const name = document.getElementById('newIsoName').value;
-            const file = document.getElementById('newIsoImage').files[0];
+            const select = document.getElementById('newIsoSelect');
+            if(!select || !select.value) return;
 
-            if(!num || !name) { alert("Number and Name required"); return; }
+            const parts = select.value.split('|');
+            const num = parts[0];
+            const name = parts[1];
 
             const fd = new FormData();
             fd.append('iso_number', num);
             fd.append('iso_name', name);
-            if(file) fd.append('iso_image', file);
 
             const res = await fetch('action_iso.php', { method: 'POST', body: fd });
             const json = await res.json();
 
             if(json.success) {
-                document.getElementById('newIsoNumber').value = '';
-                document.getElementById('newIsoName').value = '';
-                document.getElementById('newIsoImage').value = '';
+                select.selectedIndex = 0;
                 isoModal.classList.remove('active');
+                loadIsoData();
+            } else {
+                alert(json.message);
+            }
+        });
+    }
+
+    // Context Menu Action: Delete
+    const btnCtxDelete = document.getElementById('ctx-delete-iso');
+    if(btnCtxDelete) {
+        btnCtxDelete.addEventListener('click', async () => {
+            if(!rightClickedIsoId) return;
+            if(!confirm("Are you sure you want to delete this ISO?")) return;
+
+            const fd = new FormData();
+            fd.append('action', 'delete');
+            fd.append('id', rightClickedIsoId);
+
+            const res = await fetch('action_iso.php', { method: 'POST', body: fd });
+            const json = await res.json();
+
+            if(json.success) {
                 loadIsoData();
             } else {
                 alert(json.message);
@@ -120,6 +147,26 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="iso-title">ISO ${item.number}</div>
                         <div class="iso-subtitle">${item.name}</div>
                     `;
+
+                    // Right Click (Context Menu)
+                    card.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        rightClickedIsoId = item.id;
+                        
+                        // Position the menu at mouse coordinates
+                        ctxMenu.style.display = 'block';
+                        ctxMenu.style.left = e.pageX + 'px';
+                        ctxMenu.style.top = e.pageY + 'px';
+                    });
+
+                    // Left Click (Go to Files "Page")
+                    // We assume files for this ISO are stored in a folder named "ISO_{NUMBER}"
+                    card.addEventListener('click', (e) => {
+                        // Prevent triggering if we are clicking the menu logic
+                        // Reload page with a query param to open that folder
+                        window.location.href = `index.php?iso_folder=ISO_${item.number}`;
+                    });
+
                     grid.appendChild(card);
                 });
             });
@@ -154,13 +201,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateEndInput = document.getElementById('date-end');
     const selectAllCheckbox = document.getElementById('select-all-files');
     const btnBulkDelete = document.getElementById('btn-bulk-delete');
-    const btnBulkDownload = document.getElementById('btn-bulk-download');
+    
+    // REMOVED BTN BULK DOWNLOAD LOGIC HERE
 
     if(searchInput) searchInput.addEventListener('input', renderTable);
     if(dateStartInput) dateStartInput.addEventListener('change', renderTable);
     if(dateEndInput) dateEndInput.addEventListener('change', renderTable);
 
-    // --- Bulk Selection Logic ---
     if(selectAllCheckbox) {
         selectAllCheckbox.addEventListener('change', (e) => {
             const checkboxes = document.querySelectorAll('.file-checkbox');
@@ -177,28 +224,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 btnBulkDelete.style.display = 'inline-flex';
                 btnBulkDelete.innerHTML = `<ion-icon name="trash-outline" style="margin-right:5px;"></ion-icon> Delete (${count})`;
             }
-            if(btnBulkDownload) {
-                btnBulkDownload.style.display = 'inline-flex';
-                btnBulkDownload.innerHTML = `<ion-icon name="cloud-download-outline" style="margin-right:5px;"></ion-icon> Download (${count})`;
-            }
+            // Removed download button display logic
         } else {
             if(btnBulkDelete) btnBulkDelete.style.display = 'none';
-            if(btnBulkDownload) btnBulkDownload.style.display = 'none';
         }
     }
 
-    // Event Delegation for Checkboxes
     if(tableBody) {
         tableBody.addEventListener('change', (e) => {
             if(e.target.classList.contains('file-checkbox')) {
                 toggleBulkButtons();
-                // If one is unchecked, uncheck the master
                 if(!e.target.checked && selectAllCheckbox) selectAllCheckbox.checked = false;
             }
         });
     }
 
-    // --- Bulk Delete Action ---
     if(btnBulkDelete) {
         btnBulkDelete.addEventListener('click', async () => {
             const selected = Array.from(document.querySelectorAll('.file-checkbox:checked'));
@@ -219,32 +259,8 @@ document.addEventListener('DOMContentLoaded', () => {
             loadDataAndRender();
         });
     }
-
-    // --- Bulk Download Action ---
-    if(btnBulkDownload) {
-        btnBulkDownload.addEventListener('click', () => {
-            const selected = Array.from(document.querySelectorAll('.file-checkbox:checked'));
-            if(selected.length === 0) return;
-
-            // Create a temporary form to submit the file list via POST
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = 'action_download_bulk.php';
-            form.style.display = 'none';
-
-            selected.forEach(cb => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'files[]';
-                input.value = cb.value;
-                form.appendChild(input);
-            });
-
-            document.body.appendChild(form);
-            form.submit();
-            document.body.removeChild(form);
-        });
-    }
+    
+    // REMOVED BULK DOWNLOAD EVENT LISTENER
 
     function loadDataAndRender() {
         fetch('action_list_files.php?dir=' + encodeURIComponent(currentPath))
@@ -294,7 +310,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (currentPath !== '') {
             const tr = document.createElement('tr');
-            // Added empty cells for checkbox and No column
             tr.innerHTML = `<td></td><td></td><td colspan="4"><a href="#" onclick="goUpFolder()" style="font-weight:bold; color:#333; text-decoration:none;">... (Go Back)</a></td>`;
             tableBody.appendChild(tr);
         }
@@ -338,7 +353,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Helpers ---
     window.goUpFolder = function() {
         currentPath = currentPath.includes('/') ? currentPath.substring(0, currentPath.lastIndexOf('/')) : '';
         loadDataAndRender();
@@ -377,7 +391,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.removeChild(link);
     };
 
-    // --- Updated Folder Info Popup Logic ---
     window.showFolderPopup = function(folderName, relPath) {
         const modal = document.getElementById('folderInfoModal');
         
@@ -406,7 +419,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     };
 
-    // --- Admin & Upload ---
     window.loadUsers = function() {
         const tbody = document.getElementById('user-list-body');
         if(!tbody) return;
@@ -516,5 +528,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    if(document.getElementById('view-dashboard').style.display !== 'none') loadDataAndRender();
+    // --- STARTUP LOGIC: Handle URL Params for "Left Click Navigation" ---
+    // If the URL is index.php?iso_folder=ISO_9001, we automatically switch to the files tab
+    // and open that folder.
+    const urlParams = new URLSearchParams(window.location.search);
+    if(urlParams.has('iso_folder')) {
+        const targetFolder = urlParams.get('iso_folder');
+        currentPath = targetFolder;
+        switchView('files');
+        // Clean the URL so refreshing doesn't stick us here forever (optional)
+        window.history.replaceState({}, document.title, "index.php");
+    } else if(document.getElementById('view-dashboard').style.display !== 'none') {
+        loadDataAndRender();
+    }
 });
