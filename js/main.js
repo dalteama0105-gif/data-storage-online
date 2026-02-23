@@ -159,12 +159,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         ctxMenu.style.top = e.pageY + 'px';
                     });
 
-                    // Left Click (Go to Files "Page")
-                    // We assume files for this ISO are stored in a folder named "ISO_{NUMBER}"
+                   // Left Click (Go to dedicated ISO Files Page in the SAME tab)
                     card.addEventListener('click', (e) => {
-                        // Prevent triggering if we are clicking the menu logic
-                        // Reload page with a query param to open that folder
-                        window.location.href = `index.php?iso_folder=ISO_${item.number}`;
+                        window.location.href = `iso_files.php?folder=ISO_${item.number}`;
                     });
 
                     grid.appendChild(card);
@@ -201,8 +198,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateEndInput = document.getElementById('date-end');
     const selectAllCheckbox = document.getElementById('select-all-files');
     const btnBulkDelete = document.getElementById('btn-bulk-delete');
-    
-    // REMOVED BTN BULK DOWNLOAD LOGIC HERE
 
     if(searchInput) searchInput.addEventListener('input', renderTable);
     if(dateStartInput) dateStartInput.addEventListener('change', renderTable);
@@ -224,7 +219,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 btnBulkDelete.style.display = 'inline-flex';
                 btnBulkDelete.innerHTML = `<ion-icon name="trash-outline" style="margin-right:5px;"></ion-icon> Delete (${count})`;
             }
-            // Removed download button display logic
         } else {
             if(btnBulkDelete) btnBulkDelete.style.display = 'none';
         }
@@ -259,8 +253,6 @@ document.addEventListener('DOMContentLoaded', () => {
             loadDataAndRender();
         });
     }
-    
-    // REMOVED BULK DOWNLOAD EVENT LISTENER
 
     function loadDataAndRender() {
         fetch('action_list_files.php?dir=' + encodeURIComponent(currentPath))
@@ -528,17 +520,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // --- STARTUP LOGIC: Handle URL Params for "Left Click Navigation" ---
-    // If the URL is index.php?iso_folder=ISO_9001, we automatically switch to the files tab
-    // and open that folder.
-    const urlParams = new URLSearchParams(window.location.search);
-    if(urlParams.has('iso_folder')) {
-        const targetFolder = urlParams.get('iso_folder');
-        currentPath = targetFolder;
-        switchView('files');
-        // Clean the URL so refreshing doesn't stick us here forever (optional)
-        window.history.replaceState({}, document.title, "index.php");
-    } else if(document.getElementById('view-dashboard').style.display !== 'none') {
+    // --- STARTUP LOGIC ---
+    if(document.getElementById('view-dashboard').style.display !== 'none') {
         loadDataAndRender();
     }
 });
