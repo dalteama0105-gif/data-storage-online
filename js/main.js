@@ -124,6 +124,76 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- NEW: ISO IMPORT FILE LOGIC ---
+    const btnOpenIsoImportModal = document.getElementById('btn-open-iso-import-modal');
+    const isoImportFileModal = document.getElementById('isoImportFileModal');
+    const isoImportFileSelect = document.getElementById('isoImportFileSelect');
+    const btnSaveIsoImport = document.getElementById('btn-save-iso-import');
+    const isoImportFileInput = document.getElementById('isoImportFileInput');
+
+    if(btnOpenIsoImportModal) {
+        btnOpenIsoImportModal.addEventListener('click', () => {
+            // Populate the dropdown with existing ISOs
+            isoImportFileSelect.innerHTML = '<option value="">Loading...</option>';
+            fetch('action_iso.php')
+                .then(r => r.json())
+                .then(data => {
+                    isoImportFileSelect.innerHTML = '<option value="">-- Select ISO Folder --</option>';
+                    data.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = 'ISO_' + item.number;
+                        option.textContent = `ISO ${item.number} - ${item.name}`;
+                        isoImportFileSelect.appendChild(option);
+                    });
+                });
+
+            isoImportFileModal.classList.add('active');
+        });
+    }
+
+    if(btnSaveIsoImport) {
+        btnSaveIsoImport.addEventListener('click', async () => {
+            const targetFolder = isoImportFileSelect.value;
+            const files = isoImportFileInput.files;
+
+            if(!targetFolder) { alert('Please select a destination ISO.'); return; }
+            if(files.length === 0) { alert('Please select at least one file.'); return; }
+
+            btnSaveIsoImport.disabled = true;
+            btnSaveIsoImport.textContent = 'Uploading...';
+
+            let allSuccess = true;
+
+            for(let file of files) {
+                const fd = new FormData();
+                fd.append('file', file);
+                fd.append('relativePath', targetFolder + '/' + file.name); // Tells it to go to ISO folder
+
+                try {
+                    let res = await fetch('action_upload.php', { method: 'POST', body: fd });
+                    let json = await res.json();
+                    if(!json.success) {
+                        allSuccess = false;
+                        alert('Failed to upload ' + file.name + ': ' + json.message);
+                    }
+                } catch(e) {
+                    allSuccess = false;
+                    alert('Error uploading ' + file.name);
+                }
+            }
+
+            btnSaveIsoImport.disabled = false;
+            btnSaveIsoImport.textContent = 'Upload';
+
+            if(allSuccess) {
+                isoImportFileInput.value = ''; 
+                isoImportFileSelect.selectedIndex = 0; 
+                isoImportFileModal.classList.remove('active'); 
+                alert('Files successfully uploaded to ' + targetFolder + '!');
+            }
+        });
+    }
+
     function loadIsoData() {
         const grid = document.getElementById('iso-grid-container');
         if(!grid) return;
@@ -337,7 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><input type="checkbox" class="file-checkbox" value="${file.relativePath}"></td>
                 <td>${index + 1}</td>
                 <td ${nameAction}><ion-icon name="${iconName}" style="vertical-align:bottom; margin-right:5px;"></ion-icon> ${file.name}</td>
-                <td>${file.date ? file.date.substring(0,10) : '-'}</td>
+                <td>${file.date ? file.date : '-'}</td>
                 <td><span class="badge">${typeLabel}</span></td>
                 <td class="col-actions">${actionsHTML}</td>
             `;

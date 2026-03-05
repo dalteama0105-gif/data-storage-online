@@ -1,5 +1,9 @@
 <?php
 session_start();
+
+// Set timezone to Malaysia (UTC+8)
+date_default_timezone_set('Asia/Kuala_Lumpur');
+
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['user'])) { echo json_encode([]); exit; }
@@ -45,13 +49,13 @@ if (is_dir($current_scan_dir)) {
         $file_list[] = [
             'name' => $file,
             'path' => $web_path,
-            'relativePath' => $relativePath, // Important for deleting files inside folders
-            'type' => $is_dir ? 'folder' : $ext, // Tell JS this is a folder
-            'date' => date("Y-m-d H:i", filemtime($filepath)) 
+            'relativePath' => $relativePath, 
+            'type' => $is_dir ? 'folder' : $ext, 
+            'date' => date("Y-m-d h:i:s A", filemtime($filepath)) // FORMATTED DATE HERE
         ];
     }
 }
 
-// Return JSON (array_values ensures it's a clean list, not an object with missing keys)
+// Return JSON
 echo json_encode(array_values($file_list));
 ?>

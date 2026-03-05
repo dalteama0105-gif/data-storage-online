@@ -5,7 +5,7 @@
     },
     {
         "username": "User_b",
-        "password_hash": "$2y$10$f\/1va6aZQUH2K7iQlrrVfONKOrViDDXvGFxRMtPbF.dGNpoSk3kDu",
+        "password_hash": "$2y$10$DR5aLit532dUq7t1hydgy.PvmrzEPlg\/GS8l86sE0ACNRx5\/O60pe",
         "name": "UserB",
         "email": "",
         "phone": "",
@@ -13,7 +13,7 @@
     },
     {
         "username": "dev",
-        "password_hash": "$2y$10$KMTuk9hazjva03XqrLaEw.WApdtGAizdXwrznV5i72llSl11A24Km",
+        "password_hash": "$2y$10$rNYjX7s7V7LO\/vYlQ6iu3.LXaHGYF9X7NeaXxrKjQBCK576ijVd8q",
         "name": "dev",
         "email": "",
         "phone": "",

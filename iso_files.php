@@ -104,7 +104,7 @@ if (!is_dir($iso_path)) {
                             <td style="cursor:pointer; color:#2563eb; font-weight:500;" onclick="window.open('view_file.php?f=' + encodeURIComponent('${file.relativePath}'), '_blank')">
                                 <ion-icon name="document-outline" style="vertical-align:bottom; margin-right:5px;"></ion-icon> ${file.name}
                             </td>
-                            <td>${file.date ? file.date.substring(0,10) : '-'}</td>
+                            <td>${file.date ? file.date : '-'}</td>
                             <td style="text-align:center;"><span class="badge" style="background:#e5e7eb; padding:4px 8px; border-radius:4px; font-size:12px; font-weight: 600;">${ext}</span></td>
                             <td class="col-actions">
                                 <div class="action-icon-group">

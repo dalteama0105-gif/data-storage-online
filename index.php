@@ -100,8 +100,8 @@ $t = $translations[$lang];
         .file-table th:nth-child(2), .file-table td:nth-child(2) { width: 50px; text-align: center; }
         /* Col 3: Name */
         .file-table th:nth-child(3), .file-table td:nth-child(3) { width: 35%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        /* Col 4: Date */
-        .file-table th:nth-child(4), .file-table td:nth-child(4) { width: 120px; }
+        /* Col 4: Date (Widened for 12-hour format) */
+        .file-table th:nth-child(4), .file-table td:nth-child(4) { width: 190px; }
         /* Col 5: Type */
         .file-table th:nth-child(5), .file-table td:nth-child(5) { width: 80px; text-align: center; }
         /* Col 6: Actions */
@@ -217,7 +217,7 @@ $t = $translations[$lang];
 
             <div id="view-iso" class="content-view" style="display: none;">
                 <div class="file-toolbar">
-                    <button class="action-btn primary" style="cursor: default;">
+                    <button class="action-btn primary" id="btn-open-iso-import-modal">
                         <ion-icon name="add-circle-outline"></ion-icon> Import File
                     </button>
                     
@@ -458,6 +458,31 @@ $t = $translations[$lang];
                     <button type="submit" class="btn-modal btn-confirm" style="background: #10b981;">Update</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="isoImportFileModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">Import File to ISO</div>
+                <button class="btn-close-modal" onclick="document.getElementById('isoImportFileModal').classList.remove('active')"><ion-icon name="close-outline"></ion-icon></button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-input-group">
+                    <label>Select Destination ISO</label>
+                    <select id="isoImportFileSelect" class="settings-input">
+                        <option value="">Loading ISOs...</option>
+                    </select>
+                </div>
+                <div class="modal-input-group">
+                    <label>Choose File(s)</label>
+                    <input type="file" id="isoImportFileInput" class="settings-input" multiple>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal btn-cancel" onclick="document.getElementById('isoImportFileModal').classList.remove('active')">Cancel</button>
+                <button class="btn-modal btn-confirm" id="btn-save-iso-import">Upload</button>
+            </div>
         </div>
     </div>
 
